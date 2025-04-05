@@ -10,7 +10,7 @@ const jobSeeker = new schema({
     location: {
         city: { type: String, required: false },
         area: { type: String }
-    },
+    }, 
     preferredJobTypes: { type: [String], default: ["Part-time"] },
     skills: { type: [String], required: false },
     experience: { type: String },

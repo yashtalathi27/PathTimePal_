@@ -1,50 +1,52 @@
 import React, { useState } from "react";
 import { Lock, Mail } from "lucide-react";
-import { googleAuth } from "../../utils/firebase";
+// import { googleAuth } from "../../utils/firebase";
 import { useNavigate } from "react-router-dom";
 import  googleIcon  from "../../assets/google-Icon (2).svg"; // Adjust the path as necessary
 import axios from "axios";
+import { useAuthstore } from "../../store/useAuthstore";
 
 const LoginForm = ({ userType, onBack }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
     const navigate = useNavigate();
-  // const { login,authuser } = useAuthstore();
+  const { login,authuser ,setAuthuser} = useAuthstore();
 
   async function handleLogin(e) {
     // const handleLogin = (e) => {
       e.preventDefault();
       console.log(`Logging in ${userType}:`, { email, password });
       
-      const res=await axios.post('http://localhost:5000/auth/login/user', {
-        email,
-        password
-      });
-
-      if(res.status===200 && res.data.sucess){
-        console.log("Login successful:", res.data);
-        console.log(res.data);
+      // const res=await axios.post('http://localhost:5000/auth/login/user', {
+      //   email,
+      //   password
+      // });
+      // console.log(res);
+      const sucess=login({ email, password });
+      if(sucess){
+        // console.log("Login successful:", res.data);
+        // console.log(res.data);
+        console.log("->>>")
+        console.log(authuser);
         if (userType === "jobSeeker") {
           navigate("/jobSeekerDashboard");
         } else if (userType === "employer") {
           navigate("/employerDashboard");
         }
       }
-      if(res.status===200 && !res.data.sucess){
+      else{
         console.log("User does not exist please register", res.data);
         navigate("/auth/signup");
       }
-      else{
-        console.log("Error in login");
-      }
+      
       
     };
   // }
 
   async function handleGoogleAuth() {
-    const google = await googleAuth();
-    const name=google.displayName;
-    const email=google.email;
+    // const google = await googleAuth();
+    // const name=google.displayName;
+    // const email=google.email;
     // const pic=google.photoURL;
   
     const time=new Date().getTime();

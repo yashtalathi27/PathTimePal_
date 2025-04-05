@@ -83,13 +83,14 @@ async function signinJobSeeker(req,res) {
 async function userLogin(req,res) {
     try {
         const {email,password}=req.body;
-        console.log(email);
+        console.log(email,password);
         
         const user=await jobSeekers.findOne({email,password});
         if(user){
-            res.status(200).json({message:"User already exists",sucess:true,data:user});
+            console.log(1);
+            res.status(200).json({userdata:user});
         }else{
-            res.status(200).json({message:"User does not exist please register",sucess:false,data:null});
+            res.status(200).json({data:null});
         }
 
     } catch (error) {

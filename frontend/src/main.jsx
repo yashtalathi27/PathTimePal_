@@ -24,60 +24,29 @@ import MessagesRoute from "./pages/JobRecruter/Message.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />, // Use App as the main layout
+    element: <App />,
     children: [
-      {
-        index: true, // This makes Home the default route inside App
-        element: <Home />,
-      },
-      {
-        path: "login",
-        element: <UserSelectionPage />,
-      },
-      {
-        path: "auth/selection",
-        element: <SelectionPage />,
-      },
-      {
-        path: "/login",
-        element: <SelectionPage />,
-      },
-      {
-        path:"auth/login",
-        element:<LoginPage />
-      },
-      {
-        path: "auth/signup",
-        element: <SignupPage />,
-      },
-      {
-        path: "jobSeeker/profile",
-        element: <UserProfile />,
-      },
-      {
-        path: "auth/signup/jobSeeker/info",
-        element: <JobSeekerForm />,
-      },
-      {
-        path: "userprofile/:id",
-        element: <UserProfile />,
-      },
-      {
-        path:"/chatbox",
-        element:<ChatBox />
-      },
-      {
-        path:"/jobSeekerDashboard",
-        element:<JobSeekerDashboard/>
-      },
-      {
-        path:"/findJobs",
-        element:<FindJobsPage/>
-      },
-      {
-        path:"/message",
-        element:<MessagesRoute/>
-      }
+      { index: true, element: <Home /> },
+
+      // Auth Routes
+      { path: "login", element: <UserSelectionPage /> },
+      { path: "auth/selection", element: <SelectionPage /> },
+      { path: "auth/login", element: <LoginPage /> },
+      { path: "auth/signup", element: <SignupPage /> },
+      { path: "auth/signup/jobSeeker/info", element: <JobSeekerForm /> },
+
+      // Job Seeker Profile/Dashboard
+      { path: "jobSeeker/profile", element: <UserProfile /> },
+      { path: "userprofile/:id", element: <UserProfile /> },
+      { path: "jobSeekerDashboard", element: <JobSeekerDashboard /> },
+      { path: "findJobs", element: <FindJobsPage /> },
+      { path: "postjob", element: <PostJobPage /> },
+
+
+      // Chat & Messaging
+      { path: "chatbox", element: <ChatBox /> },
+      { path: "chat", element: <ChatBox /> }, // ✅ This was missing!
+      { path: "message", element: <MessagesRoute /> },
     ],
   },
 ]);

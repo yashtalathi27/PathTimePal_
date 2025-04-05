@@ -24,6 +24,11 @@ const Navbar1 = () => {
               About Us
             </Link>
           </div>
+          <div>
+            <Link to="/chat" className="hover:underline">
+              chat
+            </Link>
+          </div>
         </div>
         <div className="p-2 flex flex-row gap-3 justify-center">
           <div>

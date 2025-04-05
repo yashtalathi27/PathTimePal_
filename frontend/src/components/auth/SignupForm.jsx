@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Lock, Mail, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// import axios from "axios";
+import { axiosinstance } from "../../lib/axios";
+
 
 const SignupForm = ({ userType, onBack }) => {
   // const { signup, isSigningup } = useAuthstore();
@@ -19,7 +21,7 @@ const SignupForm = ({ userType, onBack }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value, 
     }));
   };
 
@@ -27,7 +29,7 @@ const SignupForm = ({ userType, onBack }) => {
     event.preventDefault(); // Prevent default form submission
 
     try {
-      const res = await axios.post("http://localhost:5000/auth/signin", {
+      const res = await axiosinstance.post("/jobseekers/signin", {
         name: formData.firstName + " " + formData.lastName,
         email: formData.email,
         password: formData.password,
