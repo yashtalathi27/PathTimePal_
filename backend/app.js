@@ -3,7 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const postjobroutes =require( "./routes/postjobroutes.js")
 
-// const route = require('./routes/route');
+const route = require('./routes/route');
 // const authroutes = require('./routes/authroutes');
 const {connectDB}=require('./connection/db')    
 connectDB(); 
@@ -30,7 +30,7 @@ app.use(express.json());
 app.options("*", cors());
 
 // Routes
-// app.use('/', route);
+app.use('/', route);
 // app.use("/api/auth", authroutes);
 app.use("/api/message", messageroutes);
 // app.use("/api/postjob", postjobroutes);

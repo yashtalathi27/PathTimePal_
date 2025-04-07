@@ -40,6 +40,8 @@ export const useAuthstore = create((set, get) => ({
   login: async (data) => {
     set({ islogin: true });
     try {
+      console.log(data);
+      
       const resp = await axiosinstance.post("/jobseekers/login", data, {
         headers: { "Content-Type": "application/json" },
       });

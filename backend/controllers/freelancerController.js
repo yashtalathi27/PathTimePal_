@@ -43,10 +43,10 @@ async function createjobSeeker(req, res) {
 
 async function googleLoginJobSeeker(req,res) {
     try {
-        const {email}=req.body;
-        console.log(email);
+        const {email2}=req.body;
+        console.log(email2);
         
-        const user=await jobSeekers.findOne({email});
+        const user=await jobSeekers.findOne({email:email2});
         if(user){
             res.status(200).json({message:"User already exists",data:user});
         }else{

@@ -2,7 +2,7 @@ import { Bell, ChevronDown, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';  // <-- Add this line
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useChatstore } from "../../store/useChatstore";
-import { useAuthstore } from "../../store/useauthstore";
+import { useAuthstore } from "../../store/useAuthstore";
 
 const MessagesRoute = () => {
   const navigate = useNavigate();

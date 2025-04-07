@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Lock, Mail } from "lucide-react";
-// import { googleAuth } from "../../utils/firebase";
+import { googleAuth } from "../../utils/firebase";
 import { useNavigate } from "react-router-dom";
 import  googleIcon  from "../../assets/google-Icon (2).svg"; // Adjust the path as necessary
 import axios from "axios";
@@ -44,34 +44,39 @@ const LoginForm = ({ userType, onBack }) => {
   // }
 
   async function handleGoogleAuth() {
-    // const google = await googleAuth();
-    // const name=google.displayName;
-    // const email=google.email;
-    // const pic=google.photoURL;
+    const google = await googleAuth();
+    const name=google.displayName;
+    const email2=google.email;
+    const pic=google.photoURL;
   
     const time=new Date().getTime();
     const res= await axios.post('http://localhost:5000/auth/login', {
       name,
-      email,
+      email2,
       // userType,
       time
     });  
 
-    const data=res.data;
-    console.log(data);
+    const data=res;
+    console.log(res);
+    const password=data.data?.data?.password;
+    const email=data.data?.data?.email;
+    console.log("email",email);
+    
+    const sucess=login({ email , password });
     
 
-    if (data && userType === "jobSeeker") {
-      navigate("/jobSeekerDashboard");
-    } else if (data && userType === "employer") {
-      navigate("/employerDashboard");
-    }else{
-      navigate("/auth/signup");
+    if(sucess){
+      // console.log("Login successful:", res.data);
+      // console.log(res.data);
+      console.log("->>>")
+      console.log(authuser);
+      if (userType === "jobSeeker") {
+        navigate("/jobSeekerDashboard");
+      } else if (userType === "employer") {
+        navigate("/employerDashboard");
+      }
     }
-    // if (google) {
-    //   navigate("/");
-    // }
-    //toast.sucess("Login Successfull");
   }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
