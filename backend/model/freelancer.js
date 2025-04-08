@@ -19,7 +19,7 @@ const jobSeeker = new schema({
         end: { type: String },
         days: { type: [String] }
     },
-    appliedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: "jobs" }],
+    appliedJobs: [{ type: String}],
     resume: { type: String },
     isEmployed: { type: Boolean, default: false }
 });

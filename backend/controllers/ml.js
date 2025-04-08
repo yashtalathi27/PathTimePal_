@@ -21,4 +21,11 @@ async function connectML(req, res) {
     }
 }
 
-module.exports = { connectML };
+async function insertJob(req,res,data){
+    const a=data;
+    console.log(a);
+    
+   
+}
+
+module.exports = { connectML,insertJob };

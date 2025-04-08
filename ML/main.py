@@ -104,7 +104,41 @@ class RecommendRequest(BaseModel):
     salary: float = None
     job: str = None
 
+class JobInput(BaseModel):
+    # jobId: str
+    title: str
+    jobLevel: str
+    city: str
+    tags: list[str]
+    minSalary: int
+    maxSalary: int
+    description: str
 
+@app.post("/add-job")
+async def add_job(job: JobInput):
+    print("Received JobInput:")
+    print(job.model_dump())
+   
+    new_job = {
+        "jobId": "101",
+        "title": job.title,
+        "type": job.jobLevel,
+        "category": "General",
+        "tags": str(job.tags),
+        "skills": str(["python"]),
+        "salary.amount": str(job.maxSalary),
+        "location.city": job.city,
+        "location.area": "central",
+        "employer.name": "New Corp",
+        "description": job.description
+    }
+
+    df = pd.read_csv("jobs.csv")
+    df = pd.concat([df, pd.DataFrame([new_job])], ignore_index=True)
+    df.to_csv("jobs.csv", index=False)
+
+    # train_model()  # Call the retraining function
+    return {"status": "Job added and model retrained"}
 
 @app.post("/recommends")
 async def recommend_endpoint(req: RecommendRequest):  

@@ -1,6 +1,8 @@
 const {jobSeekers}=require('../model/freelancer')
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Types;
+const {JobApplication}=require('../database/application');
+// const {jobSeekers}=require('../model/freelancer');
 
 async function createjobSeeker(req, res) {
     try {
@@ -145,11 +147,36 @@ async function updateUserByID(req,res){
     }
 }
 
+async function handleapply(req,res){
+
+    try {
+        const { id ,jobid, providerId ,status } = req.body;
+        console.log(id, jobid, providerId, status);
+        const application= await JobApplication.create({
+            seekerId: id,
+            jobId: jobid,
+            providerId: providerId,
+            // status: status
+        })
+        console.log(application);
+        
+        if(application){
+            const updated=await jobSeekers.findOneAndUpdate({_id:id},{$push:{appliedJobs:jobid}});
+            console.log(updated);
+        }
+
+
+    } catch (error) {
+        
+    }
+}
+
 module.exports={
     createjobSeeker,
     googleLoginJobSeeker,
     signinJobSeeker,
     userLogin,
     getUserById,
-    updateUserByID
+    updateUserByID,
+    handleapply
 }

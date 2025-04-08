@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Filter, Briefcase, Clock, Bookmark, ChevronDown, Star, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuthstore } from '../../store/useAuthstore';
+import axios from 'axios';
 
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,8 +88,40 @@ const FindJobsPage = () => {
     }
   ];
   
+  const {authuser}=useAuthstore();
+
+  async function handleApply() {
+    
+    const id=authuser._id;
+    const jobid="JOB101";
+    const providerId="PROVIDER101";
+    const status="applied";
+
+    console.log(id);
+
+    const res=await axios.post('http://localhost:5000/api/jobseekers/apply', {
+      id,
+      jobid,
+      providerId,
+      status
+    });
+    console.log(res);
+    // Handle the response from the server
+    if (res.status === 200) {
+      console.log("Application submitted successfully:", res.data);
+
+    } else {
+      console.error("Error submitting application:", res.data);
+    }
+
+    alert('Application submitted!');
+    
+
+  };
+
   const handleJobClick = (job) => {
     setSelectedJob(job);
+   
   };
   
   return (
@@ -286,7 +320,7 @@ const FindJobsPage = () => {
                 </div>
                 
                 <div className="mt-8 flex justify-center">
-                  <button className="bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <button onClick={handleApply} className="bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     Apply Now
                   </button>
                 </div>
