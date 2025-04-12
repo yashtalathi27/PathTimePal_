@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Briefcase, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [currentTagline, setCurrentTagline] = useState(0);
+  const navigate = useNavigate();
 
   // Array of rotating taglines
   const taglines = [
@@ -27,6 +29,7 @@ const HomePage = () => {
   }, []); 
 
   async function fetchRecommendations() {
+    //these are the jobs that are being fetched from the backend
     const res=await axios.post('http://localhost:5000/',{
       title: searchTerm,
       city: location,
@@ -35,7 +38,9 @@ const HomePage = () => {
     })
 
     console.log(res.data);
+    navigate('/findJobs', { state: { recommendations: res.data } });
     
+
   }
 
   const handleSearch = () => {

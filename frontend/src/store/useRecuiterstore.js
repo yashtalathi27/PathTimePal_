@@ -1,7 +1,7 @@
 import { create } from "zustand";  // Importing create from zustand
 import toast from "react-hot-toast";
 import { axiosinstance } from "../lib/axios";
-import { useAuthstore } from "./useauthstore.js";
+import { useAuthstore } from "./useAuthstore.js";
 
 export const useRecuiterstore = create((set, get) => ({
     postjob: async (data) => {

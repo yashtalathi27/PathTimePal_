@@ -1,102 +1,67 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI
 from pydantic import BaseModel
 import pandas as pd
-from fastapi.responses import JSONResponse
 import numpy as np
-import pandas as pd
+import ast
+import geocoder
+from nltk.stem import PorterStemmer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
 
-import os
-
-data = pd.read_csv('jobs.csv')
-data = data[['jobId','title','type','category', 'tags', 'skills', 'salary.amount', 'location.city', 'location.area', 'employer.name','description']]
-
-data['city'] = data['location.city']
-data['name'] = data['title']
-data['salary'] = data['salary.amount']
-data['job'] = data['type']
-data['employer.name'] = data['employer.name']
-data['description']=data['description']
+# Load and clean data
+data = pd.read_csv("jobs_converted_utf8.csv")
+extra = pd.read_csv("jobs_converted_utf8.csv")
+data = data[['jobId','title','category', 'tags', 'skills', 'location.city', 'salary.amount', 'employer.name', 'latitude', 'longitude']]
+data.dropna(inplace=True)
 
 def convert(text):
-    result = [item.strip() for item in text.replace(", and", ",").split(",")]
-    return result;
-
-data['employer.name'] = data['employer.name'].apply(convert)
-data['description']=data['description'].apply(convert)
-data['category'] = data['category'].apply(convert)
-data['name'] = data['name'].apply(convert)
-data['city'] = data['city'].apply(convert)
+    return [item.strip() for item in text.replace(", and", ",").split(",")]
 
 def torep(text):
-    result = text.replace("-", " ")
-    return result;
+    return text.replace("-", " ")
 
-data['type'] = data['type'].apply(torep)
-data['tags'] = data['tags'].apply(torep)
-data['job'] = data['job'].apply(torep)
+def format_str_list(ls):
+    return ast.literal_eval(ls)
 
-import ast
-
-def format(ls):
-    ls = ast.literal_eval(ls)
-    return ls;
-
-data['tags'] = data['tags'].apply(format)
-data['skills'] = data['skills'].apply(format)
-
-
-def remove_space(word):
-    l = []
-    for i in word:
-        l.append(i.replace(" ",""))
-        
-    return l
-
-data['tags'] = data['tags'].apply(remove_space)
-data['skills'] = data['tags'].apply(remove_space)
-# data['employer.name'] = data['employer.name'].apply(remove_space)
-data['name'] = data['name'].apply(remove_space)
-data['location.area'] = data['location.area'].apply(convert)
-data['job'] = data['job'].apply(convert)
-data['location.area'] = data['location.area'].apply(remove_space)
-data['job'] = data['job'].apply(remove_space)
+def remove_space(lst):
+    return [x.replace(" ", "") for x in lst]
 
 def convert_to_list(num):
     return [num]
 
-data['salary'] = data['salary'].apply(convert_to_list)
+data['employer.name'] = data['employer.name'].apply(convert).apply(remove_space)
+data['category'] = data['category'].apply(convert)
+data['name'] = data['title'].apply(convert).apply(remove_space)
+data['city'] = data['location.city'].apply(convert)
+data['tags'] = data['tags'].apply(torep).apply(format_str_list).apply(remove_space)
+data['skills'] = data['skills'].apply(format_str_list).apply(remove_space)
+data['salary'] = data['salary.amount'].apply(convert_to_list)
 
-data['tag'] = data['city'] + data['name'] + data['job'] + data['salary'] + data['category'] + data['tags'] + data['skills'] + data['location.area'] + data['employer.name']+data['description']
+data['tag'] = data['city'] + data['name'] + data['category'] + data['tags'] + data['skills']
 
-new_df = data[['jobId', 'title', 'type', 'salary.amount', 'location.city', 'tag','employer.name','description']]
+new_df = data[['jobId', 'title', 'salary.amount', 'location.city', 'tag', 'latitude', 'longitude']]
+new_df['tag'] = new_df['tag'].apply(lambda x: " ".join(map(str, x))).str.lower()
 
-new_df['tag'] = new_df['tag'].apply(lambda x: " ".join(map(str, x)))
-new_df['tag'] = new_df['tag'].apply(lambda x: x.lower())
-
-import nltk 
-from nltk.stem import PorterStemmer
 ps = PorterStemmer()
-
 def stems(text):
-    l = []
-    for i in text.split():
-        l.append(ps.stem(i))
-        
-    return " ".join(l)
-
+    return " ".join([ps.stem(i) for i in text.split()])
 new_df['tag'] = new_df['tag'].apply(stems)
 
-from sklearn.feature_extraction.text import CountVectorizer
-cv = CountVectorizer(max_features = 5000, stop_words = 'english')
-
+cv = CountVectorizer(max_features=5000, stop_words='english')
 vector = cv.fit_transform(new_df['tag']).toarray()
-
-from sklearn.metrics.pairwise import cosine_similarity
-
 similarity = cosine_similarity(vector)
 
-app = FastAPI()
+ALLOWED_CITIES = {"Bangalore", "Mysore", "Mumbai", "Pune", "Delhi", "Lucknow", "Ahmedabad"}
+CITY_COORDINATES = {
+    "Bangalore": (12.9716, 77.5946), "Mysore": (12.2958, 76.6394),
+    "Mumbai": (19.0760, 72.8777), "Pune": (18.5204, 73.8567),
+    "Delhi": (28.7041, 77.1025), "Lucknow": (26.8467, 80.9462),
+    "Ahmedabad": (23.0225, 72.5714),
+}
 
+# FastAPI setup
+app = FastAPI()
 
 class RecommendRequest(BaseModel):
     title: str
@@ -105,7 +70,6 @@ class RecommendRequest(BaseModel):
     job: str = None
 
 class JobInput(BaseModel):
-    # jobId: str
     title: str
     jobLevel: str
     city: str
@@ -116,13 +80,9 @@ class JobInput(BaseModel):
 
 @app.post("/add-job")
 async def add_job(job: JobInput):
-    print("Received JobInput:")
-    print(job.model_dump())
-   
     new_job = {
         "jobId": "101",
         "title": job.title,
-        "type": job.jobLevel,
         "category": "General",
         "tags": str(job.tags),
         "skills": str(["python"]),
@@ -130,73 +90,74 @@ async def add_job(job: JobInput):
         "location.city": job.city,
         "location.area": "central",
         "employer.name": "New Corp",
-        "description": job.description
+        "description": job.description,
+        "latitude": 0.0,
+        "longitude": 0.0,
     }
-
-    df = pd.read_csv("jobs.csv")
+    df = pd.read_csv("jobs_converted_utf8.csv")
     df = pd.concat([df, pd.DataFrame([new_job])], ignore_index=True)
-    df.to_csv("jobs.csv", index=False)
-
-    # train_model()  # Call the retraining function
-    return {"status": "Job added and model retrained"}
+    df.to_csv("jobs_converted_utf8.csv", index=False)
+    return {"status": "Job added"}
 
 @app.post("/recommends")
-async def recommend_endpoint(req: RecommendRequest):  
-    print(req.model_dump())  
-
+async def recommend_endpoint(req: RecommendRequest):
     title = req.title
     city = req.city
     salary = req.salary
-    job = req.job
-    print(salary)
-    
+
     index = new_df[new_df['title'].str.contains(title, case=False, na=False)].index
-    
     if len(index) == 0:
-        print(f"No jobs found with title: {title}")
-        return
-    
+        return {"message": f"No jobs found for title: {title}"}
+
     distances = sorted(list(enumerate(similarity[index[0]])), reverse=True, key=lambda x: x[1])
-    rec = pd.DataFrame(columns=['jobId', 'title', 'city', 'type', 'salary', 'similarity'])
+    rec_list = []
 
-    
-    for i, dist in distances[1:20]:
-        row = pd.DataFrame({
-            'jobId': [new_df.iloc[i].jobId],
-            'title': [new_df.iloc[i].title],
-            'city': [new_df.iloc[i]['location.city']],
-            'type': [new_df.iloc[i]['type']],
-            'salary': [new_df.iloc[i]['salary.amount']],
-            'similarity': [dist] ,
-            'employer': [", ".join(new_df.iloc[i]['employer.name'])],
-            'description': [", ".join(new_df.iloc[i]['description'])]
+    for i, dist in distances[1:50]:
+        job_city = new_df.iloc[i]['location.city']
+        if job_city not in ALLOWED_CITIES:
+            continue
+        rec_list.append({
+            'jobId': new_df.iloc[i].jobId,
+            'title': new_df.iloc[i].title,
+            'city': job_city,
+            'salary': new_df.iloc[i]['salary.amount'],
+            'similarity': dist,
+            'latitude': new_df.iloc[i]['latitude'],
+            'longitude': new_df.iloc[i]['longitude']
         })
-        rec = pd.concat([rec, row], ignore_index=True)
-      
 
+    rec = pd.DataFrame(rec_list)
+    if rec.empty:
+        return {"message": "No job recommendations found in the specified cities."}
+
+    rec['title_match'] = rec['title'].str.contains(title, case=False, na=False).astype(int)
+
+    if city in ALLOWED_CITIES:
+        city_lat, city_lon = CITY_COORDINATES[city]
+    else:
+        g = geocoder.ip('me')
+        if g.latlng:
+            city_lat, city_lon = g.latlng
+        else:
+            return {"message": "Could not determine user location from IP."}
+
+    user_location = np.radians([[city_lat, city_lon]])
+    job_locations = np.radians(rec[['latitude', 'longitude']].to_numpy())
+
+    nbrs = NearestNeighbors(n_neighbors=min(20, len(job_locations)), metric="haversine").fit(job_locations)
+    distances, indices = nbrs.kneighbors(user_location)
+    within_radius = np.degrees(distances) * 111 <= 500
+    filtered_indices = indices[0][within_radius[0]]
+    rec = rec.iloc[filtered_indices]
+
+    rec = rec.sort_values(by=['title_match', 'similarity'], ascending=[False, False])
+    #print(order)
+    return rec.head(20).to_dict(orient='records')
    
-    rec['city_priority'] = rec['city'].apply(lambda x: 1 if city and x.lower() == city.lower() else 0)
-    rec['type_priority'] = rec['type'].apply(lambda x: 1 if job and x.lower() == job.lower() else 0)
-    rec['salary_priority'] = rec['salary'].apply(lambda x: 1 if salary and x >= salary else 0)
 
-   
-    rec['total_priority'] = (
-        rec['similarity'] * 50 +
-        rec['city_priority'] * 30 +    
-        rec['type_priority'] * 10 +   
-        rec['salary_priority'] * 5
-    )
-    
 
-    rec = rec.sort_values(by='total_priority', ascending=False).drop(
-        ['total_priority', 'city_priority', 'type_priority', 'salary_priority'], axis=1
-    )
-
-    print("Recommendations:")
-    print(rec.head(10))
-
-    return rec.head(10).to_dict(orient='records')
-
+# Run with python main.py
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+

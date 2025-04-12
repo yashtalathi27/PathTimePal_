@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const recommendationData = createSlice({
     name: 'recommendationData',
-    initialState: [], // Start with an empty array
+    initialState: [],
     reducers: {
         setRecommendationData(state, action) {
             return action.payload; // Replace state with new data

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, MapPin, Filter, Briefcase, Clock, Bookmark, ChevronDown, Star, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthstore } from '../../store/useAuthstore';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,92 +10,94 @@ const FindJobsPage = () => {
   const [jobType, setJobType] = useState('All Types');
   const [datePosted, setDatePosted] = useState('Any Time');
   const [selectedJob, setSelectedJob] = useState(null);
+  const loc = useLocation();
   
   const jobTypes = ['All Types', 'Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary'];
   const dateFilters = ['Any Time', 'Past 24 hours', 'Past Week', 'Past Month'];
-  
-  const jobs = [
-    {
-      id: 1,
-      title: 'Barista',
-      company: 'Coffee House',
-      location: 'Downtown',
-      type: 'Part-time',
-      salary: '$15-18/hr',
-      description: 'We are looking for a friendly and energetic Barista to join our team. Experience with espresso machines preferred but not required. Must have excellent customer service skills and be available to work weekends.',
-      requirements: [
-        'High school diploma or equivalent',
-        'Previous customer service experience',
-        'Ability to work in a fast-paced environment',
-        'Weekend availability'
-      ],
-      posted: '2 days ago',
-      isSaved: false,
-      isFeatured: true
-    },
-    {
-      id: 2,
-      title: 'Retail Sales Associate',
-      company: 'Fashion Outlet',
-      location: 'Westfield Mall',
-      type: 'Part-time',
-      salary: '$16-20/hr',
-      description: 'Fashion Outlet is seeking part-time Sales Associates to join our team. Responsibilities include providing excellent customer service, maintaining store appearance, and meeting sales goals.',
-      requirements: [
-        'Previous retail experience preferred',
-        'Strong communication skills',
-        'Ability to stand for extended periods',
-        'Flexible availability including evenings and weekends'
-      ],
-      posted: '1 week ago',
-      isSaved: true,
-      isFeatured: false
-    },
-    {
-      id: 3,
-      title: 'Student Library Assistant',
-      company: 'University Library',
-      location: 'Campus',
-      type: 'Part-time',
-      salary: '$14-16/hr',
-      description: 'The University Library is seeking student assistants to help with circulation desk duties, shelving books, and assisting patrons with basic research needs.',
-      requirements: [
-        'Must be a current student',
-        'Good organizational skills',
-        'Basic computer literacy',
-        'Available to work 10-15 hours per week'
-      ],
-      posted: '3 days ago',
-      isSaved: false,
-      isFeatured: false
-    },
-    {
-      id: 4,
-      title: 'Restaurant Server',
-      company: 'City Grill',
-      location: 'Downtown',
-      type: 'Part-time',
-      salary: '$12/hr + tips',
-      description: 'City Grill is looking for experienced servers for weekend shifts. We offer competitive pay, flexible scheduling, and a fun work environment.',
-      requirements: [
-        'Previous serving experience preferred',
-        'Knowledge of POS systems',
-        'Excellent customer service skills',
-        'Must be 18 or older'
-      ],
-      posted: '1 day ago',
-      isSaved: false,
-      isFeatured: true
-    }
-  ];
+  const allJobs = loc.state?.recommendations || []; // Use the recommendations from the location state  
+  console.log(allJobs);
+   const jobs = allJobs;
+  //   {
+  //     id: 1,
+  //     title: 'Barista',
+  //     company: 'Coffee House',
+  //     location: 'Downtown',
+  //     type: 'Part-time',
+  //     salary: '$15-18/hr',
+  //     description: 'We are looking for a friendly and energetic Barista to join our team. Experience with espresso machines preferred but not required. Must have excellent customer service skills and be available to work weekends.',
+  //     requirements: [
+  //       'High school diploma or equivalent',
+  //       'Previous customer service experience',
+  //       'Ability to work in a fast-paced environment',
+  //       'Weekend availability'
+  //     ],
+  //     posted: '2 days ago',
+  //     isSaved: false,
+  //     isFeatured: true
+  //   },
+  //   {
+  //     id: 2,
+  //     title: 'Retail Sales Associate',
+  //     company: 'Fashion Outlet',
+  //     location: 'Westfield Mall',
+  //     type: 'Part-time',
+  //     salary: '$16-20/hr',
+  //     description: 'Fashion Outlet is seeking part-time Sales Associates to join our team. Responsibilities include providing excellent customer service, maintaining store appearance, and meeting sales goals.',
+  //     requirements: [
+  //       'Previous retail experience preferred',
+  //       'Strong communication skills',
+  //       'Ability to stand for extended periods',
+  //       'Flexible availability including evenings and weekends'
+  //     ],
+  //     posted: '1 week ago',
+  //     isSaved: true,
+  //     isFeatured: false
+  //   },
+  //   {
+  //     id: 3,
+  //     title: 'Student Library Assistant',
+  //     company: 'University Library',
+  //     location: 'Campus',
+  //     type: 'Part-time',
+  //     salary: '$14-16/hr',
+  //     description: 'The University Library is seeking student assistants to help with circulation desk duties, shelving books, and assisting patrons with basic research needs.',
+  //     requirements: [
+  //       'Must be a current student',
+  //       'Good organizational skills',
+  //       'Basic computer literacy',
+  //       'Available to work 10-15 hours per week'
+  //     ],
+  //     posted: '3 days ago',
+  //     isSaved: false,
+  //     isFeatured: false
+  //   },
+  //   {
+  //     id: 4,
+  //     title: 'Restaurant Server',
+  //     company: 'City Grill',
+  //     location: 'Downtown',
+  //     type: 'Part-time',
+  //     salary: '$12/hr + tips',
+  //     description: 'City Grill is looking for experienced servers for weekend shifts. We offer competitive pay, flexible scheduling, and a fun work environment.',
+  //     requirements: [
+  //       'Previous serving experience preferred',
+  //       'Knowledge of POS systems',
+  //       'Excellent customer service skills',
+  //       'Must be 18 or older'
+  //     ],
+  //     posted: '1 day ago',
+  //     isSaved: false,
+  //     isFeatured: true
+  //   }
+  // ];
   
   const {authuser}=useAuthstore();
 
   async function handleApply() {
     
     const id=authuser._id;
-    const jobid="JOB101";
-    const providerId="PROVIDER101";
+    const jobid=selectedJob.jobId;
+    const providerId=selectedJob.recid;
     const status="applied";
 
     console.log(id);
@@ -230,34 +233,34 @@ const FindJobsPage = () => {
               </div>
               
               <div className="divide-y divide-gray-100">
-                {jobs.map(job => (
+                {jobs.map((job,index) => (
                   <div 
-                    key={job.id} 
-                    className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedJob && selectedJob.id === job.id ? 'bg-indigo-50 border-l-4 border-indigo-500' : ''}`}
+                    key={index} 
+                    className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedJob && selectedJob.jobId === job.jobId ? 'bg-indigo-50 border-l-4 border-indigo-500' : ''}`}
                     onClick={() => handleJobClick(job)}
                   >
                     <div className="flex justify-between">
                       <div>
                         <h3 className="font-medium text-gray-900">{job.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{job.company}</p>
+                        <p className="text-sm text-gray-600 mt-1">JObCompany</p>
                         <div className="flex items-center text-sm text-gray-500 mt-1">
-                          <MapPin size={14} className="mr-1" /> {job.location}
+                          <MapPin size={14} className="mr-1" /> {job.city}
                         </div>
                       </div>
                       <div>
                         <button className="text-gray-400 hover:text-indigo-600">
-                          <Bookmark size={18} className={job.isSaved ? "fill-current text-indigo-500" : ""} />
+                          <Bookmark size={18} classNam />
                         </button>
                       </div>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded">{job.type}</span>
+                      <span className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded">jobType</span>
                       <span className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded">{job.salary}</span>
-                      {job.isFeatured && (
+                      {/* {job.isFeatured && (
                         <span className="px-2 py-1 bg-yellow-100 text-xs text-yellow-800 rounded">Featured</span>
-                      )}
+                      )} */}
                     </div>
-                    <div className="mt-2 text-xs text-gray-500">Posted {job.posted}</div>
+                    <div className="mt-2 text-xs text-gray-500">Posted </div>
                   </div>
                 ))}
               </div>
@@ -284,14 +287,14 @@ const FindJobsPage = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{selectedJob.title}</h2>
-                    <p className="text-lg text-gray-600 mt-1">{selectedJob.company}</p>
+                    <p className="text-lg text-gray-600 mt-1">selectedJobCompany</p>
                     <div className="flex items-center text-gray-500 mt-2">
-                      <MapPin size={16} className="mr-1" /> {selectedJob.location}
+                      <MapPin size={16} className="mr-1" /> {selectedJob.city}
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <button className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-500">
-                      <Bookmark size={20} className={selectedJob.isSaved ? "fill-current text-indigo-500" : ""} />
+                      {/* <Bookmark size={20} className={selectedJob.isSaved ? "fill-current text-indigo-500" : ""} /> */}
                     </button>
                     <button className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-500">
                       <Star size={20} />
@@ -300,23 +303,23 @@ const FindJobsPage = () => {
                 </div>
                 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">{selectedJob.type}</span>
+                  {/* <span className="px-3 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">{selectedJob.type}</span> */}
                   <span className="px-3 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">{selectedJob.salary}</span>
-                  <span className="px-3 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">Posted {selectedJob.posted}</span>
+                  {/* <span className="px-3 py-1 bg-gray-100 text-sm text-gray-700 rounded-full">Posted {selectedJob.posted}</span> */}
                 </div>
                 
                 <div className="mt-6">
                   <h3 className="font-medium text-gray-900 mb-2">Job Description</h3>
-                  <p className="text-gray-700">{selectedJob.description}</p>
+                  {/* <p className="text-gray-700">{selectedJob.description}</p> */}
                 </div>
                 
                 <div className="mt-6">
                   <h3 className="font-medium text-gray-900 mb-2">Requirements</h3>
-                  <ul className="list-disc pl-5 text-gray-700 space-y-1">
+                  {/* <ul className="list-disc pl-5 text-gray-700 space-y-1">
                     {selectedJob.requirements.map((req, index) => (
                       <li key={index}>{req}</li>
                     ))}
-                  </ul>
+                  </ul> */}
                 </div>
                 
                 <div className="mt-8 flex justify-center">

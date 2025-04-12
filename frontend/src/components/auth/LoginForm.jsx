@@ -16,7 +16,7 @@ const LoginForm = ({ userType, onBack }) => {
     // const handleLogin = (e) => {
       e.preventDefault();
       console.log(`Logging in ${userType}:`, { email, password });
-      
+      //localStorage.setItem("userType", userType);
       // const res=await axios.post('http://localhost:5000/auth/login/user', {
       //   email,
       //   password

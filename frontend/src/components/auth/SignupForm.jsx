@@ -38,6 +38,7 @@ const SignupForm = ({ userType, onBack }) => {
       if (res.status === 200) {
         console.log(res.data);
         if (userType === "jobSeeker") {
+          //localStorage.setItem("userType", userType);
           navigate("/auth/signup/jobSeeker/info");
         } else if (userType === "employer") {
           navigate("/employerDashboard");
