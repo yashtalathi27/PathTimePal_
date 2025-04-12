@@ -18,10 +18,10 @@ function getRecieverSocketId(userId) {
 }
 
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
 
     const userId = socket.handshake.query.userId;
     if (userId) userSocketMap[userId] = socket.id;
+    console.log("User connected:", socket.id,userId);
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Bookmark, Calendar, ChevronDown, Clock, FileText, Home, Mail, MessageSquare, Search, User, Timer, Briefcase, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuthstore } from '../../store/useAuthstore';
 
 const RecruiterDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -11,6 +12,9 @@ const RecruiterDashboard = () => {
   const gotToNewPage=()=>{
     navigate("/jobSeeker/profile");
   }
+  const {setAuthuser,connectSocket}=useAuthstore();
+
+  const {id}=useParams();
   // Timer effect
   useEffect(() => {
     let interval = null;
@@ -26,7 +30,15 @@ const RecruiterDashboard = () => {
     return () => clearInterval(interval);
   }, [isTimerActive, timeSpent]);
   
-  // Format time as HH:MM:SS
+  useEffect(() => {
+    const user = localStorage.getItem("authuser");
+    if (user) {
+      setAuthuser(JSON.parse(user));
+      connectSocket();
+    }
+  }, []);
+  
+  // Format time as HH:MM:SSset
   const formatTime = (time) => {
     const hours = Math.floor(time / 3600);
     const minutes = Math.floor((time % 3600) / 60);
@@ -153,7 +165,7 @@ const RecruiterDashboard = () => {
                 <a 
                   href="#"
                   onClick={() => {setActiveTab('candidates');
-                    navigate('/candidate')}}
+                    navigate(`/candidate/${id}`)}}
                   className={`${activeTab === 'candidates' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   Candidates

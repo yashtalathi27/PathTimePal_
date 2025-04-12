@@ -45,10 +45,10 @@ const router = createBrowserRouter([
       { path: "jobSeeker/profile", element: <UserProfile /> },
       { path: "userprofile/:id", element: <UserProfile /> },
       { path: "jobSeekerDashboard", element: <JobSeekerDashboard /> },
-      { path: "RDashboard", element: <RecruiterDashboard /> },
+      { path: "RDashboard/:id", element: <RecruiterDashboard /> },
       { path: "findJobs", element: <FindJobsPage /> },
       { path: "postjob", element: <PostJobPage /> },
-      { path: "/candidate", element: <JobApplicationsPage /> },
+      { path: "/candidate/:id", element: <JobApplicationsPage /> },
 
       { path: "/re", element: <RecruiterForm/> },
 
@@ -61,11 +61,10 @@ const router = createBrowserRouter([
 ]);
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+  // <StrictMode>
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <RouterProvider router={router} />
       </PersistGate>
     </Provider>
-  </StrictMode>
 );

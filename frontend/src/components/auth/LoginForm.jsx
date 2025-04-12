@@ -10,33 +10,31 @@ const LoginForm = ({ userType, onBack }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
     const navigate = useNavigate();
-  const { login,authuser ,setAuthuser} = useAuthstore();
+  const { login,loginrec,authuser ,setAuthuser} = useAuthstore();
 
+  
   async function handleLogin(e) {
     // const handleLogin = (e) => {
       e.preventDefault();
-      console.log(`Logging in ${userType}:`, { email, password });
-      //localStorage.setItem("userType", userType);
-      // const res=await axios.post('http://localhost:5000/auth/login/user', {
-      //   email,
-      //   password
-      // });
-      // console.log(res);
-      const sucess=login({ email, password });
-      if(sucess){
-        // console.log("Login successful:", res.data);
-        // console.log(res.data);
-        console.log("->>>")
-        console.log(authuser);
-        if (userType === "jobSeeker") {
-          navigate("/jobSeekerDashboard");
-        } else if (userType === "employer") {
-          navigate("/employerDashboard");
+
+      var sucess="";
+      if(userType==="jobSeeker"){
+        console.log(`Logging in ${userType}:`, { email, password });
+        sucess=login({ email, password });  
+        if(sucess){
+          console.log("->>>")
+          console.log(authuser);
+            navigate("/jobSeekerDashboard");
         }
-      }
-      else{
-        console.log("User does not exist please register", res.data);
-        navigate("/auth/signup");
+      }else{
+        console.log(`Logging in ${userType}:`, { email, password });
+        sucess=loginrec({ email, password });  
+        if(sucess){
+          console.log("->>>")
+          console.log(authuser);
+          localStorage.setItem("recid", authuser.recid);
+            navigate(`/RDashboard/${authuser.recid}`);
+        }
       }
       
       

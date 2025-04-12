@@ -17,85 +17,12 @@ const FindJobsPage = () => {
   const allJobs = loc.state?.recommendations || []; // Use the recommendations from the location state  
   console.log(allJobs);
    const jobs = allJobs;
-  //   {
-  //     id: 1,
-  //     title: 'Barista',
-  //     company: 'Coffee House',
-  //     location: 'Downtown',
-  //     type: 'Part-time',
-  //     salary: '$15-18/hr',
-  //     description: 'We are looking for a friendly and energetic Barista to join our team. Experience with espresso machines preferred but not required. Must have excellent customer service skills and be available to work weekends.',
-  //     requirements: [
-  //       'High school diploma or equivalent',
-  //       'Previous customer service experience',
-  //       'Ability to work in a fast-paced environment',
-  //       'Weekend availability'
-  //     ],
-  //     posted: '2 days ago',
-  //     isSaved: false,
-  //     isFeatured: true
-  //   },
-  //   {
-  //     id: 2,
-  //     title: 'Retail Sales Associate',
-  //     company: 'Fashion Outlet',
-  //     location: 'Westfield Mall',
-  //     type: 'Part-time',
-  //     salary: '$16-20/hr',
-  //     description: 'Fashion Outlet is seeking part-time Sales Associates to join our team. Responsibilities include providing excellent customer service, maintaining store appearance, and meeting sales goals.',
-  //     requirements: [
-  //       'Previous retail experience preferred',
-  //       'Strong communication skills',
-  //       'Ability to stand for extended periods',
-  //       'Flexible availability including evenings and weekends'
-  //     ],
-  //     posted: '1 week ago',
-  //     isSaved: true,
-  //     isFeatured: false
-  //   },
-  //   {
-  //     id: 3,
-  //     title: 'Student Library Assistant',
-  //     company: 'University Library',
-  //     location: 'Campus',
-  //     type: 'Part-time',
-  //     salary: '$14-16/hr',
-  //     description: 'The University Library is seeking student assistants to help with circulation desk duties, shelving books, and assisting patrons with basic research needs.',
-  //     requirements: [
-  //       'Must be a current student',
-  //       'Good organizational skills',
-  //       'Basic computer literacy',
-  //       'Available to work 10-15 hours per week'
-  //     ],
-  //     posted: '3 days ago',
-  //     isSaved: false,
-  //     isFeatured: false
-  //   },
-  //   {
-  //     id: 4,
-  //     title: 'Restaurant Server',
-  //     company: 'City Grill',
-  //     location: 'Downtown',
-  //     type: 'Part-time',
-  //     salary: '$12/hr + tips',
-  //     description: 'City Grill is looking for experienced servers for weekend shifts. We offer competitive pay, flexible scheduling, and a fun work environment.',
-  //     requirements: [
-  //       'Previous serving experience preferred',
-  //       'Knowledge of POS systems',
-  //       'Excellent customer service skills',
-  //       'Must be 18 or older'
-  //     ],
-  //     posted: '1 day ago',
-  //     isSaved: false,
-  //     isFeatured: true
-  //   }
-  // ];
   
   const {authuser}=useAuthstore();
 
   async function handleApply() {
     
-    const id=authuser._id;
+    const id="JOB101";
     const jobid=selectedJob.jobId;
     const providerId=selectedJob.recid;
     const status="applied";

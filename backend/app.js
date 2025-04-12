@@ -8,6 +8,7 @@ const route = require('./routes/route');
 const {connectDB}=require('./connection/db')    
 connectDB(); 
 const seekerRoute=require('./routes/seeker')
+const recRoute=require('./routes/rec')
 
 const messageroutes = require('./routes/messageroutes');
 // const postjobroutes = require('./routes/postjobroutes');
@@ -34,7 +35,8 @@ app.use('/', route);
 // app.use("/api/auth", authroutes);
 app.use("/api/message", messageroutes);
 // app.use("/api/postjob", postjobroutes);
-app.use('/api/jobseekers',seekerRoute)
+app.use('/api/jobseekers',seekerRoute);
+app.use('/api/rec',recRoute);
 app.use("/api/postjob", postjobroutes);
 
 const PORT = 5000;

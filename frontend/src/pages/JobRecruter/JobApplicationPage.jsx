@@ -17,10 +17,11 @@ const JobApplicationsPage = () => {
       try {
         setLoading(true);
         // Get the recruiter ID from local storage or context
-        const recruiterId = localStorage.getItem("recruiterId") || "current-recruiter-id";
+        const recruiterId = localStorage.getItem("recid");
         
         // Fetch all jobs posted by this recruiter
-        const response = await axios.get(`http://localhost:5000/api/recruiters/${recruiterId}/jobs`);
+        const response = await axios.get(`http://localhost:5000/api/rec/jobs/${recruiterId}`);
+        console.log(response);
         
         if (response.status === 200) {
           setRecruiterJobs(response.data);

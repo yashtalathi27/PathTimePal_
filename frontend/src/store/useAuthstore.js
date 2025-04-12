@@ -60,6 +60,32 @@ export const useAuthstore = create((set, get) => ({
       set({ islogin: false });
     }
   },
+  loginrec: async (data) => {
+    set({ islogin: true });
+    try {
+      console.log(data);
+      
+      const resp = await axiosinstance.post("/rec/login", data, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      console.log("✅ Login response:", resp.data);
+      const userData = resp.data.userdata;
+
+localStorage.setItem("authuser", JSON.stringify(userData)); // ✅ Correct usage
+set({ authuser: userData });
+      
+      console.log("✅ Stored authuser in Zustand:", get().authuser);
+
+      get().connectSocket();
+      toast.success("Logged in successfully");
+    } catch (error) {
+      console.log("❌ Login error:", error);
+      toast.error(error.response?.data?.message || "Login failed");
+    } finally {
+      set({ islogin: false });
+    }
+  },
 
   // ✅ LOGOUT
   logout: async () => {
@@ -80,8 +106,10 @@ export const useAuthstore = create((set, get) => ({
   connectSocket: () => {
     const { authuser, socket } = get();
     if (!authuser || socket?.connected) return;
-
+    console.log("1");
+      // git  
     const newSocket = io(BASE_URL, {
+   
       query: {
         userId: authuser._id,
       },
