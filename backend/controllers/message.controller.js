@@ -1,20 +1,37 @@
 // const User = require("../database/freel.model.js");
 // const jobSeeker=require("../model/freelancer.js");
 const { jobSeekers } = require("../model/freelancer.js");
+// const {JobApplication} = require("../database/application.js");
+const {JobApplication} = require("../database/application.js");
+
+const {RecruiterUser} = require("../model/rec");
 
 const Message = require("../database/message.model.js");
 const { getRecieverSocketId, io } = require("../lib/socketio.js");
 
-const getusersforsidebars  = async (req, res) => {
+const getusersforsidebars = async (req, res) => {
   try {
-    const userid = req.params.uid;
-    const filterusers = await jobSeekers.find({ _id: { $ne: userid } }).select("-password");
-    console.log(filterusers);
+    const { uid } = req.params; // recruiterId
+    console.log("Fetching applicants for seeker:", uid);
 
-    res.status(200).json(filterusers);
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server Error" });
+    // Step 1: Get applications for this seeker with status 'accepted'
+    const applications = await JobApplication.find({ seekerId: uid, status: "accepted" });
+    console.log(applications)
+    // If no applications found, return an empty array or appropriate response
+    if (!applications.length) {
+      return res.status(200).json({ applicants: [] });
+    }
+
+    // Step 2: Extract seeker IDs (providerId from JobApplication)
+    const recIds = applications.map(app => app.providerId);
+
+    // Step 3: Get full user data for recruiters whose recid is in recIds
+    const recIdss = await RecruiterUser.find({ recid: { $in: recIds } });
+
+    res.status(200).json({ applicants: recIdss });
+  } catch (error) {
+    console.error("Error retrieving applicants:", error);
+    res.status(500).json({ error: "Failed to get applicants", details: error.message });
   }
 };
 

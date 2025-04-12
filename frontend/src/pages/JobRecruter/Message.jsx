@@ -58,7 +58,7 @@ const MessagesRoute = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
-
+console.log(users)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -128,12 +128,12 @@ const MessagesRoute = () => {
               {users.length > 0 ? (
                 [...users]
                   .filter((user) =>
-                    (user.name || user.firstname || user.username || "")
+                    (user.name || user.first_name || user.username || "")
                       .toLowerCase()
                       .includes(searchTerm.toLowerCase())
                   )
                   .map((user) => {
-                    const displayName = user.firstname || user.name || user.username || "Unknown";
+                    const displayName = user.first_name || user.name || user.username || "Unknown";
 
                     return (
                       <div
@@ -173,7 +173,7 @@ const MessagesRoute = () => {
                   </div>
                   <div>
                     <h2 className="text-md font-semibold text-gray-900">
-                      {selectedUser.firstname || selectedUser.name || selectedUser.username}
+                      {selectedUser.first_name || selectedUser.name || selectedUser.username}
                     </h2>
                   </div>
                 </div>

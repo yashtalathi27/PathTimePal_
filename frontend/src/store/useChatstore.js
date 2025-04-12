@@ -16,8 +16,21 @@ export const useChatstore = create((set, get) => ({
 
         set({ isuserloading: true });
         try {
-            const resp = await axiosinstance.get(`/message/users/${authuser._id}`);
-            set({ users: resp.data });
+            // console.log(authuser);
+            
+            // const resp = await axiosinstance.get(`/message/users/${authuser.recid}`);
+            var resp;
+            console.log(authuser);
+            if(authuser.recid!=null){
+                resp=await axiosinstance.get(`/postjob/${authuser.recid}`);
+            }
+            if(authuser.seekerId!=null){
+                resp=await axiosinstance.get(`/message/users/${authuser.seekerId}`);
+            }
+            // console.log(authuser.recid)
+            set({ users: resp.data.applicants });
+            console.log(get().users)
+
         } catch (err) {
             console.error(err);
         } finally {

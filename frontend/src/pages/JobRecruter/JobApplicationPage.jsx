@@ -10,7 +10,7 @@ const JobApplicationsPage = () => {
   const [applications, setApplications] = useState([]);
   const [viewMode, setViewMode] = useState("list"); // list or detail
   const [selectedApplication, setSelectedApplication] = useState(null);
-
+  // const jobs=
   // Fetch recruiter's jobs on component mount
   useEffect(() => {
     const fetchRecruiterJobs = async () => {
@@ -18,11 +18,13 @@ const JobApplicationsPage = () => {
         setLoading(true);
         // Get the recruiter ID from local storage or context
         const recruiterId = localStorage.getItem("recid");
-        
+
         // Fetch all jobs posted by this recruiter
-        const response = await axios.get(`http://localhost:5000/api/rec/jobs/${recruiterId}`);
+        const response = await axios.get(
+          `http://localhost:5000/api/rec/jobs/${recruiterId}`
+        );
         console.log(response);
-        
+
         if (response.status === 200) {
           setRecruiterJobs(response.data);
           // Automatically select the first job if available
@@ -40,396 +42,221 @@ const JobApplicationsPage = () => {
 
     fetchRecruiterJobs();
   }, []);
+  const [jobs, setJobs] = useState([
+    {
+      id: 1,
+      title: "Frontend Developer",
+      location: "San Francisco, CA",
+      type: "Full-time",
+      salary: "$100,000 - $130,000",
+      postedDate: "March 15, 2025",
+      applicants: [
+        {
+          id: 101,
+          name: "Alex Johnson",
+          email: "alex@example.com",
+          status: "pending",
+        },
+        {
+          id: 102,
+          name: "Jamie Smith",
+          email: "jamie@example.com",
+          status: "pending",
+        },
+        {
+          id: 103,
+          name: "Taylor Wilson",
+          email: "taylor@example.com",
+          status: "pending",
+        },
+      ],
+    },
+    {
+      id: 2,
+      title: "Backend Engineer",
+      location: "Remote",
+      type: "Full-time",
+      salary: "$110,000 - $140,000",
+      postedDate: "March 20, 2025",
+      applicants: [
+        {
+          id: 104,
+          name: "Morgan Lee",
+          email: "morgan@example.com",
+          status: "pending",
+        },
+        {
+          id: 105,
+          name: "Casey Brown",
+          email: "casey@example.com",
+          status: "pending",
+        },
+      ],
+    },
+    {
+      id: 3,
+      title: "UX Designer",
+      location: "New York, NY",
+      type: "Contract",
+      salary: "$90/hour",
+      postedDate: "March 25, 2025",
+      applicants: [
+        {
+          id: 106,
+          name: "Jordan Parker",
+          email: "jordan@example.com",
+          status: "pending",
+        },
+        {
+          id: 107,
+          name: "Riley Davis",
+          email: "riley@example.com",
+          status: "pending",
+        },
+        {
+          id: 108,
+          name: "Quinn Miller",
+          email: "quinn@example.com",
+          status: "pending",
+        },
+        {
+          id: 109,
+          name: "Avery Thomas",
+          email: "avery@example.com",
+          status: "pending",
+        },
+      ],
+    },
+  ]);
 
-  // Fetch applications for a specific job
-  const fetchApplicationsForJob = async (jobId) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/jobs/${jobId}/applications`);
-      
-      if (response.status === 200) {
-        setApplications(response.data);
-      }
-    } catch (error) {
-      console.error(`Error fetching applications for job ${jobId}:`, error);
-      setApplications([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle job selection
-  const handleJobChange = (jobId) => {
-    setSelectedJobId(jobId);
-    fetchApplicationsForJob(jobId);
-    setViewMode("list");
-    setSelectedApplication(null);
-  };
-
-  // View application details
-  const viewApplicationDetail = (application) => {
-    setSelectedApplication(application);
-    setViewMode("detail");
-  };
-
-  // Return to applications list
-  const backToList = () => {
-    setViewMode("list");
-    setSelectedApplication(null);
-  };
-
-  // Handle application status update
-  const updateApplicationStatus = async (applicationId, newStatus) => {
-    try {
-      const response = await axios.patch(`http://localhost:5000/api/applications/${applicationId}`, {
-        status: newStatus
-      });
-      
-      if (response.status === 200) {
-        // Update the status in the local state
-        if (viewMode === "detail") {
-          setSelectedApplication({
-            ...selectedApplication,
-            status: newStatus
+  // Handle status update (accept/reject)
+  const handleStatusUpdate = (jobId, applicantId, newStatus) => {
+    setJobs(
+      jobs.map((job) => {
+        if (job.id === jobId) {
+          const updatedApplicants = job.applicants.map((applicant) => {
+            if (applicant.id === applicantId) {
+              return { ...applicant, status: newStatus };
+            }
+            return applicant;
           });
+          return { ...job, applicants: updatedApplicants };
         }
-        
-        // Refresh the application list
-        fetchApplicationsForJob(selectedJobId);
-      }
-    } catch (error) {
-      console.error("Error updating application status:", error);
-    }
+        return job;
+      })
+    );
   };
 
-  // Handle candidate contact via email
-  const contactCandidate = (email, jobTitle) => {
-    window.location.href = `mailto:${email}?subject=Regarding your application for ${jobTitle}`;
+  // Get status badge color
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "accepted":
+        return "bg-green-100 text-green-800";
+      case "rejected":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-yellow-100 text-yellow-800";
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Job Applications</h1>
-        
-        {loading && recruiterJobs.length === 0 ? (
-          <div className="bg-white shadow rounded-lg p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your jobs...</p>
-          </div>
-        ) : recruiterJobs.length === 0 ? (
-          <div className="bg-white shadow rounded-lg p-8 text-center">
-            <p className="text-gray-600 mb-4">You haven't posted any jobs yet.</p>
-            <button
-              onClick={() => navigate("/post-job")}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Post a Job
-            </button>
-          </div>
-        ) : (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            {/* Job selection tabs */}
-            <div className="border-b overflow-x-auto">
-              <div className="flex">
-                {recruiterJobs.map((job) => (
-                  <button
-                    key={job.jobId}
-                    onClick={() => handleJobChange(job.jobId)}
-                    className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
-                      selectedJobId === job.jobId
-                        ? "text-blue-600 border-b-2 border-blue-600"
-                        : "text-gray-600 hover:text-blue-500"
-                    }`}
-                  >
-                    {job.title}
-                    {job.applicationCount > 0 && (
-                      <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
-                        {job.applicationCount}
-                      </span>
-                    )}
-                  </button>
-                ))}
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-6">Your Posted Jobs</h1>
+
+      <div className="space-y-6">
+        {jobs.map((job) => (
+          <div
+            key={job.id}
+            className="bg-white shadow-md rounded-lg overflow-hidden"
+          >
+            {/* Job Header */}
+            <div className="bg-blue-50 p-4 border-b">
+              <h2 className="text-xl font-semibold text-blue-800">
+                {job.title}
+              </h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="text-sm text-gray-600">{job.location}</span>
+                <span className="text-sm text-gray-600">•</span>
+                <span className="text-sm text-gray-600">{job.type}</span>
+                <span className="text-sm text-gray-600">•</span>
+                <span className="text-sm text-gray-600">{job.salary}</span>
+              </div>
+              <div className="mt-1 text-sm text-gray-500">
+                Posted on: {job.postedDate}
               </div>
             </div>
 
-            {viewMode === "list" ? (
-              <div>
-                {/* Applications list view */}
-                {loading ? (
-                  <div className="p-8 text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading applications...</p>
-                  </div>
-                ) : applications.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-gray-600">No applications have been received for this job yet.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Candidate
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Applied Date
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Experience
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {applications.map((application) => (
-                          <tr key={application._id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                  {application.candidate.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {application.candidate.name}
-                                  </div>
-                                  <div className="text-sm text-gray-500">{application.candidate.email}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                {new Date(application.applyDate).toLocaleDateString()}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(application.applyDate).toLocaleTimeString()}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                ${application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                  application.status === 'reviewed' ? 'bg-blue-100 text-blue-800' : 
-                                  application.status === 'shortlisted' ? 'bg-green-100 text-green-800' : 
-                                  application.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                                  'bg-gray-100 text-gray-800'}`}
-                              >
-                                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {application.candidate.experience || "Not specified"}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button
-                                onClick={() => viewApplicationDetail(application)}
-                                className="text-blue-600 hover:text-blue-900 mr-3"
-                              >
-                                View Details
-                              </button>
-                              <button
-                                onClick={() => contactCandidate(application.candidate.email, application.jobTitle)}
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                Contact
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div>
-                {/* Application detail view */}
-                {selectedApplication && (
-                  <div className="p-6">
-                    <button 
-                      onClick={backToList}
-                      className="mb-4 flex items-center text-blue-600 hover:text-blue-800"
+            {/* Applicants Section */}
+            <div className="p-4">
+              <h3 className="font-medium text-gray-700 mb-3">
+                Applicants ({job.applicants.length})
+              </h3>
+
+              {job.applicants.length === 0 ? (
+                <p className="text-gray-500 italic">No applications yet</p>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {job.applicants.map((applicant) => (
+                    <div
+                      key={applicant.id}
+                      className="py-3 flex flex-wrap justify-between items-center"
                     >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-                      </svg>
-                      Back to Applications
-                    </button>
-                    
-                    <div className="flex flex-col md:flex-row md:space-x-6">
-                      <div className="md:w-1/3 mb-6 md:mb-0">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <div className="text-center mb-4">
-                            <div className="h-20 w-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                              <span className="text-xl font-bold text-blue-700">
-                                {selectedApplication.candidate.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <h3 className="text-lg font-bold mt-2">
-                              {selectedApplication.candidate.name}
-                            </h3>
-                            <p className="text-gray-600">{selectedApplication.candidate.title || "Job Seeker"}</p>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div>
-                              <h4 className="text-xs uppercase text-gray-500 font-semibold">Email</h4>
-                              <p className="text-sm">{selectedApplication.candidate.email}</p>
-                            </div>
-                            {selectedApplication.candidate.phone && (
-                              <div>
-                                <h4 className="text-xs uppercase text-gray-500 font-semibold">Phone</h4>
-                                <p className="text-sm">{selectedApplication.candidate.phone}</p>
-                              </div>
-                            )}
-                            {selectedApplication.candidate.location && (
-                              <div>
-                                <h4 className="text-xs uppercase text-gray-500 font-semibold">Location</h4>
-                                <p className="text-sm">{selectedApplication.candidate.location}</p>
-                              </div>
-                            )}
-                            <div>
-                              <h4 className="text-xs uppercase text-gray-500 font-semibold">Applied On</h4>
-                              <p className="text-sm">
-                                {new Date(selectedApplication.applyDate).toLocaleDateString()} at {new Date(selectedApplication.applyDate).toLocaleTimeString()}
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-xs uppercase text-gray-500 font-semibold">Status</h4>
-                              <p className="text-sm">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                  ${selectedApplication.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                    selectedApplication.status === 'reviewed' ? 'bg-blue-100 text-blue-800' : 
-                                    selectedApplication.status === 'shortlisted' ? 'bg-green-100 text-green-800' : 
-                                    selectedApplication.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                                    'bg-gray-100 text-gray-800'}`}
-                                >
-                                  {selectedApplication.status.charAt(0).toUpperCase() + selectedApplication.status.slice(1)}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-6 space-y-2">
-                            <button 
-                              onClick={() => contactCandidate(selectedApplication.candidate.email, selectedApplication.jobTitle)}
-                              className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                            >
-                              Contact Candidate
-                            </button>
-                            {selectedApplication.candidate.resume && (
-                              <a 
-                                href={selectedApplication.candidate.resume} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-full block text-center bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
-                              >
-                                View Resume
-                              </a>
-                            )}
-                          </div>
+                      <div className="mb-2 md:mb-0">
+                        <div className="font-medium">{applicant.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {applicant.email}
                         </div>
                       </div>
-                      
-                      <div className="md:w-2/3">
-                        <div className="bg-white rounded-lg divide-y divide-gray-200">
-                          <div className="p-4">
-                            <h3 className="text-lg font-bold mb-2">Application for {selectedApplication.jobTitle}</h3>
-                            <div className="flex flex-wrap gap-1 mb-4">
-                              {selectedApplication.candidate.skills && selectedApplication.candidate.skills.map((skill, index) => (
-                                <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                            {selectedApplication.coverLetter && (
-                              <div className="mb-6">
-                                <h4 className="text-sm font-semibold mb-2">Cover Letter</h4>
-                                <div className="text-sm bg-gray-50 p-3 rounded">
-                                  {selectedApplication.coverLetter}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {selectedApplication.candidate.experience && (
-                            <div className="p-4">
-                              <h4 className="text-sm font-semibold mb-2">Experience</h4>
-                              <p className="text-sm">{selectedApplication.candidate.experience}</p>
-                            </div>
-                          )}
-                          
-                          {selectedApplication.candidate.education && (
-                            <div className="p-4">
-                              <h4 className="text-sm font-semibold mb-2">Education</h4>
-                              <p className="text-sm">{selectedApplication.candidate.education}</p>
-                            </div>
-                          )}
-                          
-                          <div className="p-4">
-                            <h4 className="text-sm font-semibold mb-2">Update Application Status</h4>
-                            <div className="flex flex-wrap gap-2">
-                              <button 
-                                onClick={() => updateApplicationStatus(selectedApplication._id, "reviewed")}
-                                className={`px-3 py-1 rounded text-sm ${
-                                  selectedApplication.status === "reviewed" 
-                                    ? "bg-blue-600 text-white" 
-                                    : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                }`}
-                              >
-                                Reviewed
-                              </button>
-                              <button 
-                                onClick={() => updateApplicationStatus(selectedApplication._id, "shortlisted")}
-                                className={`px-3 py-1 rounded text-sm ${
-                                  selectedApplication.status === "shortlisted" 
-                                    ? "bg-green-600 text-white" 
-                                    : "bg-green-100 text-green-800 hover:bg-green-200"
-                                }`}
-                              >
-                                Shortlisted
-                              </button>
-                              <button 
-                                onClick={() => updateApplicationStatus(selectedApplication._id, "rejected")}
-                                className={`px-3 py-1 rounded text-sm ${
-                                  selectedApplication.status === "rejected" 
-                                    ? "bg-red-600 text-white" 
-                                    : "bg-red-100 text-red-800 hover:bg-red-200"
-                                }`}
-                              >
-                                Rejected
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="p-4">
-                            <h4 className="text-sm font-semibold mb-2">Add Notes</h4>
-                            <textarea
-                              className="w-full border rounded p-2 text-sm"
-                              rows="3"
-                              placeholder="Add private notes about this candidate..."
-                            ></textarea>
-                            <button className="mt-2 bg-gray-200 text-gray-800 px-3 py-1 rounded text-sm hover:bg-gray-300">
-                              Save Notes
+
+                      <div className="flex items-center space-x-4">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(
+                            applicant.status
+                          )}`}
+                        >
+                          {applicant.status.charAt(0).toUpperCase() +
+                            applicant.status.slice(1)}
+                        </span>
+
+                        {applicant.status === "pending" && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  job.id,
+                                  applicant.id,
+                                  "accepted"
+                                )
+                              }
+                              className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleStatusUpdate(
+                                  job.id,
+                                  applicant.id,
+                                  "rejected"
+                                )
+                              }
+                              className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                            >
+                              Reject
                             </button>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
+  // Fetch applications for a specific job
 };
-
 export default JobApplicationsPage;

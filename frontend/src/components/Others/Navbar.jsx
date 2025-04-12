@@ -5,6 +5,10 @@ const Navbar = () => {
 
   async function handleLogout(){
     localStorage.removeItem("recid");
+    localStorage.removeItem("authuser");
+    localStorage.removeItem("seekid");
+
+
 
   }
 
