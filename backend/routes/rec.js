@@ -1,11 +1,12 @@
-const express=require('express');
-const route=express.Router();
+const express = require('express');
+const route = express.Router();
 
-const {userLogin, getJobs}=require('../controllers/recController')
+// Import the functions from recController
+const { userLogin, getJobs } = require('../controllers/recController');
 
-route.post('/login',userLogin);
+// Define the routes and assign the corresponding functions
+route.post('/login', userLogin);
 route.get('/jobs/:id', getJobs);
 
-
-module.exports=route;
- 
+// Export the router
+module.exports = route;
