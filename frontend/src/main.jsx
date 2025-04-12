@@ -23,6 +23,10 @@ import MessagesRoute from "./pages/JobRecruter/Message.jsx";
 import { persistor } from "./utils/store.js";
 import { PersistGate } from "redux-persist/integration/react";
 
+import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
+import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
+import RecruiterDashboard from "./components/Dashboard/Employer.jsx";
+import JobApplicationsPage from "./pages/JobRecruter/JobApplicationPage.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -36,13 +40,17 @@ const router = createBrowserRouter([
       { path: "auth/login", element: <LoginPage /> },
       { path: "auth/signup", element: <SignupPage /> },
       { path: "auth/signup/jobSeeker/info", element: <JobSeekerForm /> },
-
+      { path: "signup", element: <UserSelection_signup/> },
       // Job Seeker Profile/Dashboard
       { path: "jobSeeker/profile", element: <UserProfile /> },
       { path: "userprofile/:id", element: <UserProfile /> },
       { path: "jobSeekerDashboard", element: <JobSeekerDashboard /> },
+      { path: "RDashboard", element: <RecruiterDashboard /> },
       { path: "findJobs", element: <FindJobsPage /> },
       { path: "postjob", element: <PostJobPage /> },
+      { path: "/candidate", element: <JobApplicationsPage /> },
+
+      { path: "/re", element: <RecruiterForm/> },
 
       // Chat & Messaging
       { path: "chatbox", element: <ChatBox /> },

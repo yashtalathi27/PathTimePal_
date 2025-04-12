@@ -8,6 +8,9 @@ const JobSeekerDashboard = () => {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [timerActivity, setTimerActivity] = useState('Job Search');
   const navigate=useNavigate();
+  const gotToNewPage=()=>{
+    navigate("/jobSeeker/profile");
+  }
   // Timer effect
   useEffect(() => {
     let interval = null;
@@ -174,7 +177,7 @@ const JobSeekerDashboard = () => {
               </button>
               <div className="ml-4 relative flex-shrink-0">
                 <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
+                  <div style={{cursor:'pointer'} }className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium" onClick={() => gotToNewPage()}>
                     JS
                   </div>
                   <span className="ml-2 text-sm font-medium text-gray-700 hidden md:block">Jamie Smith</span>

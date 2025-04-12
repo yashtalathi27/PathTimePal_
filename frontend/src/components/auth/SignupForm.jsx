@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 // import axios from "axios";
 import { axiosinstance } from "../../lib/axios";
 
-
 const SignupForm = ({ userType, onBack }) => {
   // const { signup, isSigningup } = useAuthstore();
 
@@ -27,16 +26,26 @@ const SignupForm = ({ userType, onBack }) => {
 
   async function handleSignupp(event) {
     event.preventDefault(); // Prevent default form submission
-
+   
     try {
-      const res = await axiosinstance.post("/jobseekers/signin", {
-        name: formData.firstName + " " + formData.lastName,
+      // Verify passwords match
+      if (formData.password !== formData.confirmPassword) {
+        alert("Passwords don't match");
+        return;
+      }
+
+      // Determine the endpoint based on user type - fixed to use signup endpoints
+      const endpoint = userType === "jobSeeker" ? "/jobseekers/signup" : "/recruiters/signup";
+      
+      const res = await axiosinstance.post(endpoint, {
+        name: formData.firstname + " " + formData.lastname,
         email: formData.email,
         password: formData.password,
       });
 
-      if (res.status === 200) {
-        console.log(res.data);
+      if (res.status === 200 || res.status === 201) {
+        console.log("Signup successful:", res.data);
+        // Navigate based on userType
         if (userType === "jobSeeker") {
           //localStorage.setItem("userType", userType);
           navigate("/auth/signup/jobSeeker/info");
@@ -48,6 +57,7 @@ const SignupForm = ({ userType, onBack }) => {
       }
     } catch (error) {
       console.error("Signup failed:", error);
+      alert("Signup failed: " + (error.response?.data?.message || error.message));
     }
   }
 
@@ -56,7 +66,7 @@ const SignupForm = ({ userType, onBack }) => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {userType === "jobSeeker" ? "Job Seeker" : "Employer"} Sign Up
+            {userType === "jobSeeker" ? "Job Seeker" : "Recruiter"} Sign Up
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Create your PartTime Pal account

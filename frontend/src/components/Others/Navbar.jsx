@@ -17,12 +17,12 @@ const Navbar = () => {
             <Link to="/chat" className="text-gray-700 hover:bg-gray-100 px-3 py-2 rounded">
               chat
             </Link>
-            <Link to="/auth/login">
+            <Link to="/login">
               <button className="text-gray-700 hover:bg-gray-100 px-3 py-2 rounded">
                 Login
               </button>
             </Link>
-            <Link to="/auth/signup">
+            <Link to="/signup">
               <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Sign Up
               </button>
