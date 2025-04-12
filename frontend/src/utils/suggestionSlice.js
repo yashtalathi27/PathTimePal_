@@ -1,20 +1,16 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const recommendationData = createSlice({
-    name: 'recommendationData',
-    initialState: [],
-    reducers: {
-        setRecommendationData(state, action) {
-            return action.payload; // Replace state with new data
-        },
-        addRecommendation(state, action) {
-            state.push(action.payload); // Add a single recommendation
-        },
-        clearRecommendations() {
-            return []; // Reset state to an empty array
-        },
+const suggestionSlice = createSlice({
+  name: 'suggestions',
+  initialState: {
+    data: [],
+  },
+  reducers: {
+    setRecommendationData: (state, action) => {
+      state.data = action.payload;
     },
+  },
 });
 
-export const { setRecommendationData, addRecommendation, clearRecommendations } = recommendationData.actions;
-export default recommendationData.reducer;
+export const { setRecommendationData } = suggestionSlice.actions;
+export default suggestionSlice.reducer;

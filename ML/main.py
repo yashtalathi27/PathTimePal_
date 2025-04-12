@@ -12,7 +12,7 @@ from sklearn.neighbors import NearestNeighbors
 # Load and clean data
 data = pd.read_csv("jobs_converted_utf8.csv")
 extra = pd.read_csv("jobs_converted_utf8.csv")
-data = data[['jobId','title','category', 'tags', 'skills', 'location.city', 'salary.amount', 'employer.name', 'latitude', 'longitude']]
+data = data[['jobId','title','category', 'tags', 'skills', 'location.city', 'salary.amount', 'employer.name', 'latitude', 'longitude', 'recid', 'description', 'requirements']]
 data.dropna(inplace=True)
 
 def convert(text):
@@ -40,7 +40,7 @@ data['salary'] = data['salary.amount'].apply(convert_to_list)
 
 data['tag'] = data['city'] + data['name'] + data['category'] + data['tags'] + data['skills']
 
-new_df = data[['jobId', 'title', 'salary.amount', 'location.city', 'tag', 'latitude', 'longitude']]
+new_df = data[['jobId', 'title', 'salary.amount', 'location.city', 'tag', 'latitude', 'longitude', 'recid', 'description', 'requirements', 'employer.name']]
 new_df['tag'] = new_df['tag'].apply(lambda x: " ".join(map(str, x))).str.lower()
 
 ps = PorterStemmer()
@@ -123,7 +123,11 @@ async def recommend_endpoint(req: RecommendRequest):
             'salary': new_df.iloc[i]['salary.amount'],
             'similarity': dist,
             'latitude': new_df.iloc[i]['latitude'],
-            'longitude': new_df.iloc[i]['longitude']
+            'longitude': new_df.iloc[i]['longitude'],
+            'recid': new_df.iloc[i]['recid'],   
+            'description': new_df.iloc[i]['description'],
+            'requirements': new_df.iloc[i]['requirements'],
+            'employer.name': new_df.iloc[i]['employer.name'],
         })
 
     rec = pd.DataFrame(rec_list)
