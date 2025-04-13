@@ -1,19 +1,20 @@
 const Job = require("../database/postjob.model.js");
-const {JobApplication} = require("../database/application.js");
+const { JobApplication } = require("../database/application.js");
 const { insertJob } = require("../controllers/ml.js");
 const { jobSeekers } = require("../model/freelancer.js");
 
 const axios = require("axios");
+// const Job = require('../models/job.model'); // Adjust path if different
 
-// 🟢 POST a Job
 const postjobconn = async (req, res) => {
     try {
         console.log("Request body:", req.body);
 
         const {
-            recruiterId,
+            jobId,
+            recid,
             title,
-            tags,
+            tags = [],
             role,
             minSalary,
             maxSalary,
@@ -22,33 +23,82 @@ const postjobconn = async (req, res) => {
             country,
             city,
             description,
+            duration,
+            skills = [],
+            schedule = {},
+            employer, // Proper destructuring
+            location,
+            preferredTime = {},
+            requirements = "",
+            slug,
+            category,
+            type
         } = req.body;
 
+        // Validate required fields
+        if (!slug || !category || !type || !recid) {
+            return res.status(400).json({ error: "Slug, category, type, and recruiterId are required" });
+        }
+
+        if (!employer?.name) {
+            return res.status(400).json({ error: "Employer name is required" });
+        }
+
+        if (!req.body.salary?.amount) {
+            return res.status(400).json({ error: "Salary amount is required" });
+        }
+
+        // Create new job object
         const newJob = new Job({
-            recruiterId,
+            jobId,
+             recid,
             title,
-            tags,
-            role,
-            minSalary,
-            maxSalary,
-            vacancies,
-            jobLevel,
-            country,
-            city,
             description,
+            requirements: Array.isArray(requirements) ? requirements : [requirements],
+            type,
+            category,
+            slug,
+            isApplied: false,
+            tags,
+            duration,
+            skills,
+            vacancies,
+            salary: {
+                amount: Number(req.body.salary.amount), // Ensure it's a number
+                currency: req.body.salary.currency || "USD",
+                frequency: req.body.salary.frequency || "monthly"
+            },
+            preferredTime: {
+                start: preferredTime.start || "",
+                end: preferredTime.end || ""
+            },
+            location: {
+                city: location?.city || "",
+                area: location?.area || ""
+            },
+            employer: {
+                name: employer.name,
+                contact: employer.contact,
+                phone: employer.phone,
+                owner: employer.owner
+            },
+            schedule: {
+                shifts: Array.isArray(schedule.shifts) ? schedule.shifts : [schedule.shifts || ""],
+                days: schedule.days || []
+            },
+            createdAt: new Date()
         });
 
-        console.log("New Job:", newJob);
+        console.log("New Job to be saved:", newJob);
 
         await newJob.save();
 
-        try {
-            const response = await axios.post("http://127.0.0.1:8000/add-job", newJob);
-            console.log("ML service response:", response.data);
-        } catch (error) {
-            console.error("Error calling ML service:", error.message || error);
-        }
-
+//  try {
+//             const response = await axios.post("http://127.0.0.1:8000/add-job", newJob);
+//             console.log("ML service response:", response.data);
+//         } catch (error) {
+//             console.error("Error calling ML service:", error.message || error);
+//         }
         res.status(201).json({ message: "Job posted successfully", job: newJob });
 
     } catch (error) {
@@ -56,6 +106,8 @@ const postjobconn = async (req, res) => {
         res.status(500).json({ error: "Failed to post job", details: error.message });
     }
 };
+
+module.exports = postjobconn;
 
 // 🟢 GET Jobs by Recruiter ID
 const getjobs = async (req, res) => {
@@ -70,8 +122,7 @@ const getjobs = async (req, res) => {
     }
 };
 
-// const User = require("../database/user.model.js"); // import User model
-
+// 🟢 GET Users Who Applied to Recruiter's Jobs
 const getusers = async (req, res) => {
     try {
         const { id } = req.params; // recruiterId
@@ -91,28 +142,6 @@ const getusers = async (req, res) => {
         console.error("Error retrieving applicants:", error);
         res.status(500).json({ error: "Failed to get applicants", details: error.message });
     }
-}
-
-// 🟢 GET Users Who Applied to Recruiter's Jobs
-// const getusers = async (req, res) => {
-//     try {
-        // const { id } = req.params;
-        // console.log("11111111111");
-        
-        // console.log(id)
-        // const applicants = await JobApplication.find(
-        //     { providerId: id },
-        //     { seekerId: 1, _id: 0 }
-        // );
-        // console.log("app->>")
-        // console.log(applicants)
-
-        // res.status(200).json({ applicants });
-        
-    // } catch (error) {
-    //     console.error("Error retrieving applicants:", error);
-    //     res.status(500).json({ error: "Failed to get applicants", details: error.message });
-    // }
-
+};
 
 module.exports = { postjobconn, getjobs, getusers };

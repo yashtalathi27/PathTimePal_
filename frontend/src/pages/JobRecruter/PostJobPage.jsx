@@ -4,6 +4,7 @@ import axios from "axios";
 
 const PostJobPage = () => {
   const navigate = useNavigate();
+  // const {postjob}=useRecuiterstore();
 
   // Generate a random job ID with format JOB followed by 4 digits
   const generateJobId = () => {
@@ -204,11 +205,11 @@ const PostJobPage = () => {
     });
   };
 
-  async function submitForm() {
+  async function submitForm(f) {
     try {
-      const res = await axios.post("http://localhost:5000/api/postjob", formData);
+      const res = await axios.post("http://localhost:5000/api/postjob", f);
       console.log(res);
-      navigate("/jobs");
+      // navigate("/jobs");
     } catch (error) {
       console.error("Error submitting form:", error);
     }
@@ -216,8 +217,25 @@ const PostJobPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Submitted Job Data:", formData);
-    submitForm();
+    // const handleJobPost = () => {
+      // Get the recid from localStorage
+      const recid = localStorage.getItem('recid');
+      
+      // Check if recid is available, and add it to the formData if present
+      if (recid) {
+        const updatedFormData = { ...formData, recid };
+    
+        // Log the updated formData with recid
+        console.log('Posting Job:', updatedFormData);
+        submitForm(updatedFormData)
+        // Here you can call your API to save the job posting with the recid
+        // Example: 
+        // postJobToBackend(updatedFormData);
+      } else {
+        console.log('recid not found in localStorage');
+      }
+    // };
+    
   };
 
   return (
