@@ -55,6 +55,7 @@ async function getJobs(req, res) {
                             experience: seeker.experience,
                             availability: seeker.availability,
                             resume: seeker.resume,
+                            seekerId:seeker.seekerId,
                             status: app.status,
                             appliedAt: app.appliedAt,
                         };

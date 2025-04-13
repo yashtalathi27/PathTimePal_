@@ -9,7 +9,7 @@ const {connectDB}=require('./connection/db')
 connectDB(); 
 const seekerRoute=require('./routes/seeker')
 const recRoute=require('./routes/rec')
-
+const acceptroute=require("./routes/acceptroutes.js")
 const messageroutes = require('./routes/messageroutes');
 // const postjobroutes = require('./routes/postjobroutes');
 const { app, server } = require('./lib/socketio'); // Assuming socketio.js uses CommonJS too
@@ -38,6 +38,8 @@ app.use("/api/message", messageroutes);
 app.use('/api/jobseekers',seekerRoute);
 app.use('/api/rec',recRoute);
 app.use("/api/postjob", postjobroutes);
+app.use("/api/accept", acceptroute);
+
 
 const PORT = 5000;
 
