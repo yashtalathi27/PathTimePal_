@@ -1,4 +1,5 @@
-const Job = require("../database/postjob.model.js");
+
+const {Job}=require('../model/job.js');
 const { JobApplication } = require("../database/application.js");
 const { insertJob } = require("../controllers/ml.js");
 const { jobSeekers } = require("../model/freelancer.js");
@@ -10,84 +11,44 @@ const postjobconn = async (req, res) => {
     try {
         console.log("Request body:", req.body);
 
-        const {
-            jobId,
-            recid,
-            title,
-            tags = [],
-            role,
-            minSalary,
-            maxSalary,
-            vacancies,
-            jobLevel,
-            country,
-            city,
-            description,
-            duration,
-            skills = [],
-            schedule = {},
-            employer, // Proper destructuring
-            location,
-            preferredTime = {},
-            requirements = "",
-            slug,
-            category,
-            type
-        } = req.body;
+        // const {
+        //     jobId,
+        //     recid,
+        //     title,
+        //     tags = [],
+            
+        //     vacancies,
+            
+        //     description,
+        //     duration,
+        //     skills = [],
+        //     schedule = {},
+        //     employer, // Proper destructuring
+        //     location,
+        //     preferredTime = {},
+        //     requirements = "",
+        //     slug,
+        //     category,
+        //     type
+        // } = req.body;
 
-        // Validate required fields
-        if (!slug || !category || !type || !recid) {
-            return res.status(400).json({ error: "Slug, category, type, and recruiterId are required" });
-        }
+        // // Validate required fields
+        // if (!slug || !category || !type || !recid) {
+        //     return res.status(400).json({ error: "Slug, category, type, and recruiterId are required" });
+        // }
 
-        if (!employer?.name) {
-            return res.status(400).json({ error: "Employer name is required" });
-        }
+        // if (!employer?.name) {
+        //     return res.status(400).json({ error: "Employer name is required" });
+        // }
 
-        if (!req.body.salary?.amount) {
-            return res.status(400).json({ error: "Salary amount is required" });
-        }
+        // if (!req.body.salary?.amount) {
+        //     return res.status(400).json({ error: "Salary amount is required" });
+        // }
 
         // Create new job object
-        const newJob = new Job({
-            jobId,
-             recid,
-            title,
-            description,
-            requirements: Array.isArray(requirements) ? requirements : [requirements],
-            type,
-            category,
-            slug,
-            isApplied: false,
-            tags,
-            duration,
-            skills,
-            vacancies,
-            salary: {
-                amount: Number(req.body.salary.amount), // Ensure it's a number
-                currency: req.body.salary.currency || "USD",
-                frequency: req.body.salary.frequency || "monthly"
-            },
-            preferredTime: {
-                start: preferredTime.start || "",
-                end: preferredTime.end || ""
-            },
-            location: {
-                city: location?.city || "",
-                area: location?.area || ""
-            },
-            employer: {
-                name: employer.name,
-                contact: employer.contact,
-                phone: employer.phone,
-                owner: employer.owner
-            },
-            schedule: {
-                shifts: Array.isArray(schedule.shifts) ? schedule.shifts : [schedule.shifts || ""],
-                days: schedule.days || []
-            },
-            createdAt: new Date()
-        });
+        const newJob = new Job(req.body);
+        console.log("New Job object created:", newJob);
+        
 
         console.log("New Job to be saved:", newJob);
 

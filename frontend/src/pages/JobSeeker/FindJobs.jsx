@@ -7,6 +7,7 @@ import { useLocation } from 'react-router-dom';
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
+  const [id, setId] = useState('');
   const [jobType, setJobType] = useState('All Types');
   const [datePosted, setDatePosted] = useState('Any Time');
   const [selectedJob, setSelectedJob] = useState(null);
@@ -16,7 +17,9 @@ const FindJobsPage = () => {
   const dateFilters = ['Any Time', 'Past 24 hours', 'Past Week', 'Past Month'];
   const allJobs = loc.state?.recommendations || []; // Use the recommendations from the location state  
   console.log(allJobs);
-   const jobs = allJobs;
+  // const [jobs, setJobs] = useState(allJobs || []); // Initialize with all jobs or an empty array
+  var jobs = allJobs || []; // Use a variable to hold the jobs, initialized with all jobs or an empty array
+  //  const jobs = allJobs;
   
   const {authuser}=useAuthstore();
 
@@ -49,11 +52,35 @@ const FindJobsPage = () => {
 
   };
 
-  const handleJobClick = (job) => {
-    setSelectedJob(job);
-   
-  };
+  async function searchJobs() {
+    try {
+      const response = await axios.post('http://localhost:5000/api/jobseekers/findjobs', {
+        id
+      });
+      
+      console.log(response.data);
+      setJobs(response.data || []); // Update jobs state with the response data
+      // Update jobs state with the response data
+      // setJobs(response.data.jobs);
+    } catch (error) {
+      console.error('Error fetching jobs:', error); 
+      alert('Failed to fetch jobs. Please try again later.');
+    }
+  }
   
+  async function fetchRecommendations() {
+    //these are the jobs that are being fetched from the backend
+    const res=await axios.post('http://localhost:5000/',{
+      title: searchTerm,
+      city: location,
+      salary: 0,
+      job: 0
+    })
+    jobs= res.data;// Update jobs state with the response data
+    console.log(res.data);
+ 
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation omitted for brevity - would be the same as in the main dashboard */}
@@ -99,24 +126,24 @@ const FindJobsPage = () => {
               </div>
             </div>
             
-            <div>
-              <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+           <div>
+            
+              <label htmlFor="id" className="block text-sm font-medium text-gray-700 mb-1">ID</label>
               <div className="relative">
-                <select
-                  id="jobType"
-                  value={jobType}
-                  onChange={(e) => setJobType(e.target.value)}
-                  className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
-                >
-                  {jobTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <ChevronDown size={16} className="text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MapPin size={18} className="text-gray-400" />
                 </div>
+                <input
+                  type="number"
+                  id="id"
+                  value={id}
+                  onChange={(e) => setId(e.target.value)}
+                  placeholder="ID of job"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </div>
-            </div>
+            
+           </div>
             
             <div>
               <label htmlFor="datePosted" className="block text-sm font-medium text-gray-700 mb-1">Date Posted</label>
@@ -138,15 +165,11 @@ const FindJobsPage = () => {
             </div>
           </div>
           
-          <div className="mt-4 flex justify-between">
-            <button className="flex items-center text-gray-500 text-sm">
-              <Filter size={16} className="mr-1" />
-              More Filters
+           <div>
+            <button onClick={fetchRecommendations} className="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              Search
             </button>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              Search Jobs
-            </button>
-          </div>
+           </div>
         </div>
         
         {/* Job Listings */}

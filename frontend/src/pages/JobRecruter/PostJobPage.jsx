@@ -47,7 +47,8 @@ const PostJobPage = () => {
     schedule: {
       shifts: "",
       days: []
-    }
+    },
+    recid: localStorage.getItem('recid') || "REC00002" // Get recid from localStorage
   });
 
   const generateSlug = (title) => {
@@ -205,9 +206,11 @@ const PostJobPage = () => {
     });
   };
 
-  async function submitForm(f) {
+  async function handlejobPost() {
     try {
-      const res = await axios.post("http://localhost:5000/api/postjob", f);
+      const res = await axios.post("http://localhost:5000/api/postjob", {
+        ...formData,
+      });
       console.log(res);
       // navigate("/jobs");
     } catch (error) {
@@ -655,6 +658,7 @@ const PostJobPage = () => {
           <button
             type="submit"
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+            onClick={handlejobPost}
           >
             Create Job Posting
           </button>

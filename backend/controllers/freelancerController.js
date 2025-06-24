@@ -1,6 +1,7 @@
 const {jobSeekers}=require('../model/freelancer')
+const {Job}=require('../model/job');
 const mongoose = require("mongoose");
-const { ObjectId } = mongoose.Types;
+// const { ObjectId } = mongoose.Types;
 const {JobApplication}=require('../database/application');
 // const {jobSeekers}=require('../model/freelancer');
 
@@ -171,6 +172,27 @@ async function handleapply(req,res){
     }
 }
 
+async function handlesearch(req,res){
+    try {
+        const { id } = req.body;
+        console.log(id);
+        
+        const job=await Job.findOne({ jobId: id });
+        if (!job) {
+            return res.status(404).json({ message: "Job not found", success: false });
+        }else{
+            return res.status(200).json({ message: "Job found", data: job, success: true });
+        }
+        
+    }
+    catch (error) {
+        console.error("Error during search:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
+
+
 module.exports={
     createjobSeeker,
     googleLoginJobSeeker,
@@ -178,5 +200,6 @@ module.exports={
     userLogin,
     getUserById,
     updateUserByID,
-    handleapply
+    handleapply,
+    handlesearch
 }
