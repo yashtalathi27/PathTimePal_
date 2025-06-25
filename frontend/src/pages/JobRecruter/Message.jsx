@@ -17,9 +17,19 @@ const MessagesRoute = () => {
     listentoMessages,
     removeMessages,
     messages = [],
-  } = useChatstore();
+  } = useChatstore(); 
 
-  const { authuser } = useAuthstore();
+  const { authuser, loadAuthuser} = useAuthstore();
+  const storedUser = localStorage.getItem('authuser');
+  useEffect(() => {
+  if (!authuser && localStorage.getItem("authuser")) {
+    loadAuthuser();
+  }
+}, [authuser]);
+// useEffect(() => {
+//   loadAuthuser();
+// }, []);
+
 
   const [text, setText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -58,8 +68,9 @@ const MessagesRoute = () => {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
-console.log(users)
+// console.log(users)
   return (
+
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-200">

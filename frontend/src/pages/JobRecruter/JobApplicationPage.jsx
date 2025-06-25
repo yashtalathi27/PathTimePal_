@@ -9,7 +9,7 @@ const JobApplicationsPage = () => {
     try {
       setLoading(true);
       const recruiterId = localStorage.getItem("recid");
-
+      console.log(recruiterId);
       const response = await axios.get(
         `http://localhost:5000/api/rec/jobs/${recruiterId}`
       );

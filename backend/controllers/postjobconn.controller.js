@@ -90,7 +90,7 @@ const getusers = async (req, res) => {
         console.log("Fetching applicants for recruiter:", id);
 
         // Step 1: Get applications for this recruiter
-        const applications = await JobApplication.find({ providerId: id });
+        const applications = await JobApplication.find({ providerId: id ,status:"accepted"});
 
         // Step 2: Extract seeker IDs
         const seekerIds = applications.map(app => app.seekerId);

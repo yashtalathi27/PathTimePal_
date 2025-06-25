@@ -10,13 +10,12 @@ const LoginForm = ({ userType, onBack }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
     const navigate = useNavigate();
-  const { login,loginrec,authuser ,setAuthuser} = useAuthstore();
+  const { login,loginrec,authuser ,setAuthuser} = useAuthstore();       
 
   
   async function handleLogin(e) {
     // const handleLogin = (e) => {
       e.preventDefault();
-
       var sucess="";
       if(userType==="jobSeeker"){
         console.log(`Logging in ${userType}:`, { email, password });

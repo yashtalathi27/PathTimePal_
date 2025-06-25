@@ -15,7 +15,7 @@ export const useChatstore = create((set, get) => ({
         if (!authuser) return;
 
         set({ isuserloading: true });
-        try {
+        try { 
             // console.log(authuser);
             
             // const resp = await axiosinstance.get(`/message/users/${authuser.recid}`);

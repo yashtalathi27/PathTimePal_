@@ -89,6 +89,7 @@ async function userLogin(req,res) {
         console.log(email,password);
         
         const user=await jobSeekers.findOne({email,password});
+        console.log(user);
         if(user){
             console.log(1);
             res.status(200).json({userdata:user});
@@ -151,24 +152,26 @@ async function updateUserByID(req,res){
 async function handleapply(req,res){
 
     try {
-        const { id ,jobid, providerId ,status } = req.body;
-        console.log(id, jobid, providerId, status);
+        const { jobid, providerId ,status,seekerId } = req.body;
+        console.log(jobid, providerId, status,seekerId);
         const application= await JobApplication.create({
-            seekerId: id,
-            jobId: jobid,
+            jobId: String(jobid),
+            seekerId: seekerId,
             providerId: providerId,
-            // status: status
+            status: status
         })
+        console.log("huurr");
         console.log(application);
         
         if(application){
-            const updated=await jobSeekers.findOneAndUpdate({_id:id},{$push:{appliedJobs:jobid}});
+            const updated=await jobSeekers.findOneAndUpdate({seekerId:seekerId},{$push:{appliedJobs:jobid}});
             console.log(updated);
+            return res.status(200).json({  success: true });
         }
 
 
     } catch (error) {
-        
+        console.log(error);
     }
 }
 

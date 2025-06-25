@@ -15,8 +15,30 @@ export const useAuthstore = create((set, get) => ({
   socket: null,
 
   // ✅ Utility to set user manually
-  setAuthuser: (user) => set({ authuser: user }),
+  setAuthuser: (user) => {
+    localStorage.setItem('authuser', JSON.stringify(user));
+    set({ authuser: user });
+    // get().connectSocket();
+  },
 
+  loadAuthuser: () => {
+  const storedUser = localStorage.getItem('authuser');
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      set({ authuser: parsedUser });
+      get().connectSocket(); // ✅ ← this is the missing piece
+    } catch (err) {
+      console.error('Invalid JSON in authuser:', err);
+    }
+  }
+}
+,
+
+  clearAuthuser: () => {
+    localStorage.removeItem('authuser');
+    set({ authuser: null });
+  },
   // ✅ SIGN UP
   signup: async (data) => {
     set({ isSigningup: true });
@@ -47,7 +69,8 @@ export const useAuthstore = create((set, get) => ({
       });
 
       console.log("✅ Login response:", resp.data);
-
+      localStorage.setItem("authuser", JSON.stringify(resp.data.userdata)); // ✅ Correct usage
+      
       set({ authuser: resp.data.userdata });
       console.log("✅ Stored authuser in Zustand:", get().authuser);
 

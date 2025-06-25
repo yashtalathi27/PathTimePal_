@@ -8,8 +8,11 @@ async function userLogin(req, res) {
         const { email, password } = req.body;
         console.log(email, password);
 
-        const user = await RecruiterUser.findOne({ email: email, password: password });
-        console.log(user);
+        const user = await RecruiterUser.findOne({ email: email.trim(), password: password.trim() });
+        // console.log(RecruiterUser.find({}));
+        RecruiterUser.find({}).then(users => {
+  console.log(users);
+});
 
         if (user) {
             console.log(1);
@@ -25,22 +28,22 @@ async function userLogin(req, res) {
 async function getJobs(req, res) {
     try {
         const { id } = req.params;
-
+        console.log(id);
         // Step 1: Get all jobs for the recruiter
         const jobs = await Job.find({ recid: id });
-
+        console.log(jobs);
         // Step 2: For each job, get applicants and seeker info
         const jobsWithApplicants = await Promise.all(
             jobs.map(async (jobii) => {
                 // Find applications for this job
                 const applications = await JobApplication.find({ jobId: jobii.jobId }).lean();
+                console.log(applications);
 
                 // Fetch the seeker details for each application
                 const applicants = await Promise.all(
                     applications.map(async (app) => {
                         // Directly use seekerId as a string (no need for ObjectId conversion)
                         const seeker = await jobSeekers.findOne({ seekerId: app.seekerId }).lean();
-
                         console.log(seeker);
 
                         // Format and return the applicant details
