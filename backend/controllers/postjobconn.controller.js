@@ -1,4 +1,3 @@
-
 const {Job}=require('../model/job.js');
 const { JobApplication } = require("../database/application.js");
 const { insertJob } = require("../controllers/ml.js");
@@ -104,5 +103,71 @@ const getusers = async (req, res) => {
         res.status(500).json({ error: "Failed to get applicants", details: error.message });
     }
 };
+// 🟢 GET All Jobs
+const getAllJobs = async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 10, 
+            search, 
+            location, 
+            type, 
+            category,
+            minSalary,
+            maxSalary 
+        } = req.query;
 
-module.exports = { postjobconn, getjobs, getusers };
+        let query = {};
+
+        // Build search query
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } },
+                { 'employer.name': { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        if (location) {
+            query.$or = [
+                { 'location.city': { $regex: location, $options: 'i' } },
+                { 'location.area': { $regex: location, $options: 'i' } }
+            ];
+        }
+
+        if (type && type !== 'All Types') {
+            query.type = type;
+        }
+
+        if (category && category !== 'All Categories') {
+            query.category = category;
+        }
+
+        if (minSalary || maxSalary) {
+            query['salary.amount'] = {};
+            if (minSalary) query['salary.amount'].$gte = parseInt(minSalary);
+            if (maxSalary) query['salary.amount'].$lte = parseInt(maxSalary);
+        }
+
+        const jobs = await Job.find(query)
+            .sort({ createdAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const total = await Job.countDocuments(query);
+
+        res.status(200).json({
+            jobs,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page,
+            total
+        });
+    } catch (error) {
+        console.error("Error getting all jobs:", error);
+        res.status(500).json({ error: "Failed to get jobs", details: error.message });
+    }
+};
+
+
+module.exports = { postjobconn, getjobs, getusers, getAllJobs };
+

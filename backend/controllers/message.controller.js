@@ -70,8 +70,29 @@ const sendmessage = async (req, res) => {
   }
 };
 
+// Get specific recruiter for direct contact
+const getRecruiterForContact = async (req, res) => {
+  try {
+    const { recid } = req.params; // recruiter ID
+    console.log("Fetching recruiter for contact:", recid);
+
+    // Get recruiter data by recid
+    const recruiter = await RecruiterUser.findOne({ recid: recid });
+    
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter not found" });
+    }
+
+    res.status(200).json({ recruiter });
+  } catch (error) {
+    console.error("Error retrieving recruiter for contact:", error);
+    res.status(500).json({ error: "Failed to get recruiter", details: error.message });
+  }
+};
+
 module.exports = {
   getusersforsidebars,
   getmessage,
-  sendmessage
+  sendmessage,
+  getRecruiterForContact
 };

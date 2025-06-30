@@ -1,11 +1,14 @@
-import { Bell, ChevronDown, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';  // <-- Add this line
+import { Search } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';  // <-- Add useSearchParams
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useChatstore } from "../../store/useChatstore";
 import { useAuthstore } from "../../store/useAuthstore";
 
 const MessagesRoute = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const contactId = searchParams.get('contact'); // Get contact ID from URL params
+  
   const {
     getuser,
     users = [],
@@ -17,6 +20,7 @@ const MessagesRoute = () => {
     listentoMessages,
     removeMessages,
     messages = [],
+    getRecruiterForContact,
   } = useChatstore(); 
 
   const { authuser, loadAuthuser} = useAuthstore();
@@ -34,12 +38,16 @@ const MessagesRoute = () => {
   const [text, setText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('messages');
+  const messagesContainerRef = useRef(null);
+  const [loadingContact, setLoadingContact] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(false); // Changed from true to false
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
     try {
+      setShouldAutoScroll(true); // Always auto-scroll when user sends a message
       await sendMessage(text);
       setText("");
     } catch (err) {
@@ -59,62 +67,122 @@ const MessagesRoute = () => {
     if (selectedUser?._id) {
       getmessages(selectedUser._id);
       listentoMessages();
+      // On first conversation load, scroll to top to read from beginning
+      setIsFirstLoad(true);
+      setShouldAutoScroll(false);
     }
     return () => removeMessages();
   }, [selectedUser, getmessages]);
 
+  // Smart auto-scroll: scroll to top on first load, auto-scroll to bottom only for new messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current && messages.length > 0) {
+      if (isFirstLoad) {
+        // Scroll to top when first opening a conversation
+        messagesContainerRef.current.scrollTop = 0;
+        setIsFirstLoad(false);
+      } else if (shouldAutoScroll) {
+        // Auto-scroll to bottom only for new messages when user is already at bottom
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        setShouldAutoScroll(false);
+      }
     }
-  }, [messages]);
+  }, [messages, shouldAutoScroll, isFirstLoad]);
+
+  // Check if user is near bottom when they scroll
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop <= clientHeight + 100;
+      // Only enable auto-scroll for new messages if user is near bottom
+      if (isNearBottom && !isFirstLoad) {
+        setShouldAutoScroll(true);
+      } else {
+        setShouldAutoScroll(false);
+      }
+    }
+  };
+
+  // Handle direct contact from URL parameter
+  useEffect(() => {
+    const handleDirectContact = async () => {
+      if (contactId && users.length >= 0) { // Changed from > 0 to >= 0
+        console.log("Looking for contact with ID:", contactId);
+        console.log("Available users:", users);
+        
+        // Try to find the contact by recid (which matches providerId from application)
+        let contactUser = users.find(user => 
+          user.recid === contactId || 
+          user._id === contactId ||
+          user.id === contactId
+        );
+        
+        console.log("Found contact user in existing list:", contactUser);
+        
+        // If not found in existing users, try to fetch the specific recruiter
+        if (!contactUser) {
+          console.log("Contact not found in existing list, fetching from API...");
+          setLoadingContact(true);
+          contactUser = await getRecruiterForContact(contactId);
+          console.log("Fetched contact user from API:", contactUser);
+          setLoadingContact(false);
+        }
+        
+        if (contactUser && contactUser._id !== selectedUser?._id) {
+          setSelecteduser(contactUser);
+          console.log("Selected user for contact:", contactUser);
+        } else if (!contactUser) {
+          console.warn("Contact user not found anywhere");
+        }
+      }
+    };
+    
+    handleDirectContact();
+  }, [contactId, users.length, selectedUser, setSelecteduser, getRecruiterForContact]);
+
 // console.log(users)
   return (
 
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <span className="text-indigo-600 font-bold text-xl">FlexWork</span>
-              <div className="hidden sm:flex ml-8 space-x-6">
-                {["dashboard", "jobs", "applications", "messages"].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      setActiveTab(tab);
-                      navigate(tab === "dashboard" ? "/" : `/${tab}`);
-                    }}
-                    className={`${
-                      activeTab === tab
-                        ? "border-indigo-500 text-gray-900"
-                        : "border-transparent text-gray-500 hover:text-gray-700"
-                    } border-b-2 text-sm font-medium pb-1`}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                ))}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Contact notification banner */}
+        {contactId && (
+          <div className={`mb-4 border rounded-md p-4 ${
+            selectedUser ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+          }`}>
+            <div className="flex">
+              <div className="flex-shrink-0">
+                {loadingContact ? (
+                  <svg className="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : selectedUser ? (
+                  <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                )}
               </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Bell size={20} className="text-gray-400" />
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 bg-indigo-100 rounded-full flex justify-center items-center font-medium text-indigo-600">
-                  {authuser?.username?.[0]?.toUpperCase() || "U"}
-                </div>
-                <span className="text-sm text-gray-700 hidden md:block">
-                  {authuser?.username || "User"}
-                </span>
-                <ChevronDown size={16} className="text-gray-400" />
+              <div className="ml-3">
+                <p className={`text-sm ${selectedUser ? 'text-green-800' : 'text-yellow-800'}`}>
+                  {loadingContact ? (
+                    "Loading employer contact..."
+                  ) : selectedUser ? (
+                    <>You can now chat with <strong>{selectedUser.name}</strong> about your job application.</>
+                  ) : (
+                    <>Unable to find employer with ID: <strong>{contactId}</strong>. They may not be available for chat yet.</>
+                  )}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        )}
+        
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
           <p className="text-gray-600">Communicate with employers and recruiters</p>
@@ -149,7 +217,10 @@ const MessagesRoute = () => {
                     return (
                       <div
                         key={user._id}
-                        onClick={() => setSelecteduser(user)}
+                        onClick={() => {
+                          setSelecteduser(user);
+                          setIsFirstLoad(true); // Reset first load flag when selecting new user
+                        }}
                         className={`p-4 cursor-pointer border-b hover:bg-gray-50 ${
                           selectedUser?._id === user._id ? "bg-indigo-50" : ""
                         }`}
@@ -194,7 +265,11 @@ const MessagesRoute = () => {
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 max-h-[500px]">
+            <div 
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 max-h-[500px]"
+            >
               {messages.length > 0 ? (
                 messages.map((msg, index) => (
                   <div

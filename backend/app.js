@@ -27,6 +27,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Serve static files for uploads
+app.use('/uploads', express.static('uploads'));
+
 // ✅ Fix: Explicitly Handle Preflight Requests
 app.options("*", cors());
 
@@ -38,6 +41,7 @@ app.use("/api/message", messageroutes);
 app.use('/api/jobseekers',seekerRoute);
 app.use('/api/rec',recRoute);
 app.use("/api/postjob", postjobroutes);
+app.use("/api/jobs", postjobroutes); // Add jobs route for finding jobs
 app.use("/api/accept", acceptroute);
 
 

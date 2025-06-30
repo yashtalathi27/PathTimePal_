@@ -15,13 +15,15 @@ import PostJobPage from "./pages/JobRecruter/PostJobPage.jsx";
 import Register_form from "./pages/auth/Register_form.jsx";
 import SelectionPage from "./pages/auth/SelectionPage.jsx";
 import JobSeekerForm from "./components/auth/JobSeekerForm.jsx";
-import UserProfile from "./pages/JobSeeker/UserProfile.jsx";
+import UserProfile from "./components/Profile/UserProfile.jsx";
 import ChatBox from "./pages/JobRecruter/ChatBox.jsx";
 import JobSeekerDashboard from "./components/Dashboard/JobSeeker.jsx";
 import FindJobsPage from "./pages/JobSeeker/FindJobs.jsx";
+import ApplicationsPage from "./pages/JobSeeker/Applications.jsx";
 import MessagesRoute from "./pages/JobRecruter/Message.jsx";
 import { persistor } from "./utils/store.js";
 import { PersistGate } from "redux-persist/integration/react";
+import Application from "./pages/JobSeeker/Application.jsx";
 
 import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
 import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
@@ -43,6 +45,10 @@ const router = createBrowserRouter([
       { path: "signup", element: <UserSelection_signup/> },
       // Job Seeker Profile/Dashboard
       { path: "jobSeeker/profile", element: <UserProfile /> },
+      { path: "jobSeeker/dashboard", element: <JobSeekerDashboard /> },
+      { path: "jobSeeker/findjobs", element: <FindJobsPage /> },
+      { path: "jobSeeker/applications", element: <ApplicationsPage /> },
+      { path: "jobSeeker/messages", element: <MessagesRoute /> },
       { path: "userprofile/:id", element: <UserProfile /> },
       { path: "jobSeekerDashboard", element: <JobSeekerDashboard /> },
       { path: "RDashboard/:id", element: <RecruiterDashboard /> },
@@ -56,6 +62,7 @@ const router = createBrowserRouter([
       { path: "chatbox", element: <ChatBox /> },
       { path: "chat", element: <ChatBox /> }, // ✅ This was missing!
       { path: "message", element: <MessagesRoute /> },
+      { path: "application", element: <Application /> },
     ],
   },
 ]);

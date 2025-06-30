@@ -1,229 +1,180 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Bookmark, Calendar, ChevronDown, Clock, FileText, Home, Mail, MessageSquare, Search, User, Timer, Briefcase, CheckCircle } from 'lucide-react';
+import { Clock, FileText, MessageSquare, User, Briefcase, CheckCircle, TrendingUp, Users } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthstore } from '../../store/useAuthstore';
+import axios from 'axios';
 
 const RecruiterDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [timerActivity, setTimerActivity] = useState('Candidate Screening');
   const navigate = useNavigate();
-  const gotToNewPage=()=>{
-    navigate("/jobSeeker/profile");
-  }
-  const {setAuthuser,connectSocket}=useAuthstore();
-
-  const {id}=useParams();
-  // Timer effect
-  useEffect(() => {
-    let interval = null;
-    
-    if (isTimerActive) {
-      interval = setInterval(() => {
-        setTimeSpent(seconds => seconds + 1);
-      }, 1000);
-    } else if (!isTimerActive && timeSpent !== 0) {
-      clearInterval(interval);
-    }
-    
-    return () => clearInterval(interval);
-  }, [isTimerActive, timeSpent]);
+  const { id } = useParams();
+  const { authuser, setAuthuser, connectSocket, loadAuthuser } = useAuthstore();
   
+  // State for real-time data
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeJobs: 0,
+    totalApplicants: 0,
+    positionsFilled: 0
+  });
+  
+  // Load authuser on component mount
   useEffect(() => {
-    const user = localStorage.getItem("authuser");
+    if (!authuser && localStorage.getItem("authuser_recruiter")) {
+      loadAuthuser('recruiter');
+    }
+  }, [authuser, loadAuthuser]);
+
+  // Debug authuser for recruiter
+  useEffect(() => {
+    if (authuser) {
+      console.log('Current recruiter authuser:', authuser);
+      console.log('Recruiter authuser keys:', Object.keys(authuser));
+      console.log('recId:', authuser.recId);
+      console.log('_id:', authuser._id);
+    }
+  }, [authuser]);
+  
+  // Fetch recruiter's jobs and applications
+  useEffect(() => {
+    const fetchJobsAndApplications = async () => {
+      // Try multiple possible ID fields for recruiter - recid is the primary field
+      const recruiterId = authuser?.recid || authuser?.recId || authuser?._id || authuser?.id;
+      
+      if (recruiterId) {
+        try {
+          setLoading(true);
+          console.log('Fetching jobs for recruiter ID:', recruiterId);
+          console.log('Full authuser object:', authuser);
+          const response = await axios.get(`http://localhost:5000/api/rec/jobs/${recruiterId}`);
+          console.log('Jobs response:', response.data);
+          
+          const jobsData = response.data.data || [];
+          console.log('Jobs data:', jobsData);
+          setJobs(jobsData);
+          
+          // Calculate stats from real data
+          const activeJobs = jobsData.length;
+          const totalApplicants = jobsData.reduce((sum, job) => {
+            const applicantCount = job.applicants?.length || 0;
+            console.log(`Job ${job.jobId} (${job.title}) has ${applicantCount} applicants:`, job.applicants);
+            return sum + applicantCount;
+          }, 0);
+          const positionsFilled = jobsData.reduce((sum, job) => {
+            const acceptedCount = job.applicants?.filter(app => app.status === 'accepted').length || 0;
+            console.log(`Job ${job.jobId} (${job.title}) has ${acceptedCount} accepted applicants`);
+            return sum + acceptedCount;
+          }, 0);
+          
+          console.log('Calculated stats:', { activeJobs, totalApplicants, positionsFilled });
+          
+          setStats({
+            activeJobs,
+            totalApplicants,
+            positionsFilled
+          });
+          
+        } catch (error) {
+          console.error('Error fetching jobs:', error);
+          console.error('Request URL was:', `http://localhost:5000/api/rec/jobs/${recruiterId}`);
+          setJobs([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        console.log('No recruiter ID found, cannot fetch jobs');
+        console.log('Available authuser fields:', authuser ? Object.keys(authuser) : 'No authuser');
+        setLoading(false);
+      }
+    };
+
+    fetchJobsAndApplications();
+  }, [authuser]);
+
+  const gotToNewPage = () => {
+    navigate("/recruiter/profile");
+  };
+
+  const goToPostJob = () => {
+    navigate("/recruiter/postjob");
+  };
+
+  const goToApplications = () => {
+    navigate("/recruiter/applications");
+  };
+
+  useEffect(() => {
+    const user = localStorage.getItem("authuser_recruiter");
     if (user) {
-      setAuthuser(JSON.parse(user));
+      setAuthuser(JSON.parse(user), 'recruiter');
       connectSocket();
     }
   }, []);
-  
-  // Format time as HH:MM:SSset
-  const formatTime = (time) => {
-    const hours = Math.floor(time / 3600);
-    const minutes = Math.floor((time % 3600) / 60);
-    const seconds = time % 60;
+
+  // Get top candidates from all jobs
+  const getTopCandidates = () => {
+    const allApplicants = jobs.flatMap(job => 
+      (job.applicants || []).map(applicant => ({
+        ...applicant,
+        position: job.title,
+        jobLocation: job.location?.city || job.city || 'Location not specified'
+      }))
+    );
     
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      seconds.toString().padStart(2, '0')
-    ].join(':');
-  };
-  
-  const toggleTimer = () => {
-    setIsTimerActive(!isTimerActive);
-  };
-  
-  const resetTimer = () => {
-    setTimeSpent(0);
-    setIsTimerActive(false);
+    // Sort by status priority and take top 5
+    const statusPriority = { 'accepted': 3, 'pending': 2, 'rejected': 1 };
+    return allApplicants
+      .sort((a, b) => (statusPriority[b.status] || 0) - (statusPriority[a.status] || 0))
+      .slice(0, 5);
   };
 
-  const activeJobs = [
-    { 
-      id: 1, 
-      position: 'Senior Developer', 
-      department: 'Tech',
-      location: 'Remote',
-      type: 'Full-time',
-      applicants: 24,
-      posted: 'Apr 1, 2025' 
-    },
-    { 
-      id: 2, 
-      position: 'Marketing Specialist', 
-      department: 'Marketing',
-      location: 'New York',
-      type: 'Contract',
-      applicants: 18,
-      posted: 'Mar 30, 2025' 
-    },
-    { 
-      id: 3, 
-      position: 'Customer Service Rep', 
-      department: 'Customer Service',
-      location: 'Chicago',
-      type: 'Part-time',
-      applicants: 42,
-      posted: 'Mar 28, 2025' 
-    }
-  ];
-
-  const topCandidates = [
-    {
-      id: 1,
-      name: 'Alex Johnson',
-      position: 'Senior Developer',
-      experience: '8 years',
-      match: '95%',
-      status: 'Interview Scheduled'
-    },
-    {
-      id: 2,
-      name: 'Maya Rodriguez',
-      position: 'Marketing Specialist',
-      experience: '5 years',
-      match: '88%',
-      status: 'Application Review'
-    }
-  ];
-
-  const upcomingInterviews = [
-    {
-      id: 1,
-      candidate: 'Alex Johnson',
-      position: 'Senior Developer',
-      time: 'Today, 3:00 PM',
-      type: 'Video Call'
-    },
-    {
-      id: 2,
-      candidate: 'Sarah Williams',
-      position: 'Customer Service Rep',
-      time: 'Tomorrow, 1:00 PM',
-      type: 'Phone Interview'
-    }
-  ];
-
-  const recruiterActivities = [
-    'Candidate Screening',
-    'Interview Preparation',
-    'Job Posting',
-    'Resume Review',
-    'Reference Checks',
-    'Candidate Communications'
-  ];
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date not specified';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <div className="text-indigo-600 font-bold text-xl">FlexWork</div>
-              </div>
-              <div className="hidden sm:ml-8 sm:flex space-x-8">
-                <a 
-                  href="#" 
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`${activeTab === 'dashboard' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Dashboard
-                </a>
-                <button
-                  onClick={() => {
-                    setActiveTab('jobs');
-                    navigate('/postjob');
-                  }}
-                  className={`${activeTab === 'jobs' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Post Job
-                </button>
-                <a 
-                  href="#"
-                  onClick={() => {setActiveTab('candidates');
-                    navigate(`/candidate/${id}`)}}
-                  className={`${activeTab === 'candidates' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Candidates
-                </a>
-                <button
-                  onClick={() => {
-                    setActiveTab('message');
-                    navigate('/message');
-                  }}
-                  className={`${activeTab === 'message' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Messages
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center">
-              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
-                <Bell size={20} />
-              </button>
-              <div className="ml-4 relative flex-shrink-0">
-                <div className="flex items-center">
-                  <div style={{cursor:'pointer'}} onClick={() => gotToNewPage()} className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium">
-                    TR
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-700 hidden md:block">Tech Recruiter</span>
-                  <ChevronDown size={16} className="ml-1 text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, Recruiter!</h1>
-          <p className="text-gray-600 mt-1">Here's what's happening with your recruitment activities today.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {authuser?.first_name || authuser?.name || 'Recruiter'}!
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {stats.activeJobs > 0 
+              ? `You have ${stats.activeJobs} active job posting${stats.activeJobs !== 1 ? 's' : ''} with ${stats.totalApplicants} applicant${stats.totalApplicants !== 1 ? 's' : ''} to review.`
+              : "Ready to start posting jobs and finding great candidates."
+            }
+          </p>
         </div>
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">3</div>
+            <div className="text-3xl font-bold text-gray-900">{loading ? '...' : stats.activeJobs}</div>
             <div className="text-sm text-gray-500">Active Job Postings</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">84</div>
-            <div className="text-sm text-gray-500">Total Applicants</div>
+            <div className="text-3xl font-bold text-gray-900">{loading ? '...' : stats.totalApplicants}</div>
+            <div className="text-sm text-gray-500">Total Applications</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">12</div>
-            <div className="text-sm text-gray-500">Interviews Scheduled</div>
+            <div className="text-3xl font-bold text-green-600">{loading ? '...' : stats.positionsFilled}</div>
+            <div className="text-sm text-gray-500">Applications Accepted</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-indigo-600">5</div>
-            <div className="text-sm text-gray-500">Positions Filled This Month</div>
+            <div className="text-3xl font-bold text-red-600">
+              {loading ? '...' : jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'rejected').length || 0), 0)}
+            </div>
+            <div className="text-sm text-gray-500">Applications Rejected</div>
           </div>
         </div>
 
@@ -236,42 +187,66 @@ const RecruiterDashboard = () => {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-medium text-gray-900">Active Job Listings</h2>
-                  <a href="#" className="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
+                  <button 
+                    onClick={() => navigate('/jobSeeker/findjobs')}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    View all
+                  </button>
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {activeJobs.map((job) => (
-                      <tr key={job.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{job.position}</div>
-                          <div className="text-xs text-gray-500">{job.location}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{job.department}</div>
-                          <div className="text-xs text-gray-500">{job.type}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {job.applicants}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {job.posted}
-                        </td>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading jobs...</p>
+                  </div>
+                ) : jobs.length > 0 ? (
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {jobs.slice(0, 5).map((job, index) => (
+                        <tr key={job.jobId || index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{job.title}</div>
+                            <div className="text-xs text-gray-500">{job.location?.city || job.city || 'Location not specified'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{job.category || 'General'}</div>
+                            <div className="text-xs text-gray-500">{job.type || 'Full-time'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {job.applicants?.length || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(job.createdAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Briefcase size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Jobs</h3>
+                    <p className="text-gray-500 mb-4">Start by posting your first job to attract candidates.</p>
+                    <button 
+                      onClick={goToPostJob}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                      Post a Job
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -279,69 +254,103 @@ const RecruiterDashboard = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-100">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-medium text-gray-900">Top Candidates</h2>
-                  <a href="#" className="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
+                  <h2 className="text-lg font-medium text-gray-900">Recent Applicants</h2>
+                  <button 
+                    onClick={() => navigate('/recruiter/applications')}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    View all
+                  </button>
                 </div>
               </div>
               <div className="divide-y divide-gray-100">
-                {topCandidates.map((candidate) => (
-                  <div key={candidate.id} className="p-6 hover:bg-gray-50">
-                    <div className="flex justify-between">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">{candidate.name}</h3>
-                        <div className="mt-1 text-xs text-gray-500">{candidate.position} • {candidate.experience}</div>
-                        <div className="mt-1 text-xs text-gray-500">{candidate.status}</div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs font-medium text-green-600">{candidate.match} Match</span>
-                        <button className="mt-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-md hover:bg-indigo-200">View Profile</button>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading candidates...</p>
+                  </div>
+                ) : getTopCandidates().length > 0 ? (
+                  getTopCandidates().map((candidate, index) => (
+                    <div key={candidate.seekerId || index} className="p-6 hover:bg-gray-50">
+                      <div className="flex justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">{candidate.name}</h3>
+                          <div className="mt-1 text-xs text-gray-500">{candidate.position} • {candidate.jobLocation}</div>
+                          <div className="mt-1 text-xs text-gray-500">
+                            {candidate.experience || 'Experience not specified'} • 
+                            <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                              candidate.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                              candidate.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {candidate.status || 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <div className="flex space-x-2">
+                            {candidate.email && (
+                              <a 
+                                href={`mailto:${candidate.email}`}
+                                className="text-xs text-indigo-600 hover:text-indigo-500"
+                              >
+                                Email
+                              </a>
+                            )}
+                            <button className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-200">
+                              View Profile
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <Users size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Applicants Yet</h3>
+                    <p className="text-gray-500">Candidates will appear here once they start applying to your jobs.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
 
           {/* Sidebar - 1/3 width */}
           <div className="space-y-6">
-            {/* Recruitment Timer - NEW SECTION */}
+            {/* Application Management */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Activity Timer</h2>
-              <div className="flex flex-col items-center mb-4">
-                <div className="text-3xl font-mono text-gray-800 bg-gray-100 w-full py-4 text-center rounded-md">
-                  {formatTime(timeSpent)}
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Application Management</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center">
+                    <Clock size={16} className="text-yellow-600 mr-2" />
+                    <span className="text-sm text-gray-700">Pending Applications</span>
+                  </div>
+                  <span className="text-sm font-medium text-yellow-700">
+                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'pending').length || 0), 0)}
+                  </span>
                 </div>
-                <div className="mt-4 w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity</label>
-                  <select 
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={timerActivity}
-                    onChange={(e) => setTimerActivity(e.target.value)}
-                  >
-                    {recruiterActivities.map((activity) => (
-                      <option key={activity} value={activity}>{activity}</option>
-                    ))}
-                  </select>
+                
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center">
+                    <CheckCircle size={16} className="text-green-600 mr-2" />
+                    <span className="text-sm text-gray-700">Accepted Applications</span>
+                  </div>
+                  <span className="text-sm font-medium text-green-700">
+                    {stats.positionsFilled}
+                  </span>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={toggleTimer}
-                  className={`flex items-center justify-center p-2 rounded-md ${isTimerActive ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                >
-                  <Clock size={16} className="mr-2" />
-                  <span>{isTimerActive ? 'Pause' : 'Start'}</span>
-                </button>
-                <button 
-                  onClick={resetTimer}
-                  className="flex items-center justify-center p-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                >
-                  <span>Reset</span>
-                </button>
-              </div>
-              <div className="mt-4 text-xs text-gray-500">
-                Track your recruitment activities to stay productive and organized.
+                
+                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                  <div className="flex items-center">
+                    <User size={16} className="text-red-600 mr-2" />
+                    <span className="text-sm text-gray-700">Rejected Applications</span>
+                  </div>
+                  <span className="text-sm font-medium text-red-700">
+                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'rejected').length || 0), 0)}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -349,81 +358,107 @@ const RecruiterDashboard = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
               <div className="grid grid-cols-2 gap-3">
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
+                <button 
+                  onClick={goToPostJob}
+                  className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                >
                   <FileText size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Post Job</span>
+                  <span className="mt-2 text-xs text-gray-600">Post New Job</span>
                 </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <Search size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Search Candidates</span>
+                <button 
+                  onClick={goToApplications}
+                  className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  <Users size={20} className="text-indigo-600" />
+                  <span className="mt-2 text-xs text-gray-600">View Applications</span>
                 </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <Calendar size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Schedule Interview</span>
+                <button 
+                  onClick={() => navigate('/recruiter/jobs')}
+                  className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  <Briefcase size={20} className="text-indigo-600" />
+                  <span className="mt-2 text-xs text-gray-600">Manage Jobs</span>
                 </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
+                <button 
+                  onClick={() => navigate('/recruiter/messages')}
+                  className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
+                >
                   <MessageSquare size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Send Messages</span>
+                  <span className="mt-2 text-xs text-gray-600">Messages</span>
                 </button>
               </div>
             </div>
 
-            {/* Upcoming Interviews */}
+            {/* Recent Job Postings */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Upcoming Interviews</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Job Postings</h2>
               <div className="space-y-4">
-                {upcomingInterviews.map((interview) => (
-                  <div key={interview.id} className="border border-gray-100 rounded-md p-4">
-                    <div className="flex items-start">
-                      <Calendar size={16} className="text-indigo-600 mt-1 mr-3" />
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">{interview.candidate}</h3>
-                        <p className="text-xs text-gray-500 mt-1">{interview.position}</p>
-                        <p className="text-xs text-gray-500">{interview.time} • {interview.type}</p>
+                {jobs.slice(0, 3).length > 0 ? (
+                  jobs.slice(0, 3).map((job, index) => (
+                    <div key={job.jobId || index} className="border border-gray-100 rounded-md p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-900">{job.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{job.location?.city || 'Location not specified'}</p>
+                          <p className="text-xs text-gray-500">{job.applicants?.length || 0} applicant{(job.applicants?.length || 0) !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-gray-400 mt-1">Posted {formatDate(job.createdAt)}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            (job.applicants?.length || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {(job.applicants?.length || 0) > 0 ? 'Has Applications' : 'No Applications'}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6">
+                    <Briefcase size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-500">No job postings yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Start by posting your first job</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             {/* Recruitment Goals */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Monthly Goals</h2>
-              <div className="space-y-3">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Current Status</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <TrendingUp size={16} className="text-blue-500 mr-2" />
+                    <span className="text-sm text-gray-700">Active Job Postings</span>
+                  </div>
+                  <span className="text-sm font-medium">{stats.activeJobs}</span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Users size={16} className="text-green-500 mr-2" />
+                    <span className="text-sm text-gray-700">Total Applicants</span>
+                  </div>
+                  <span className="text-sm font-medium">{stats.totalApplicants}</span>
+                </div>
+                
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
                     <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Fill 10 positions</span>
+                    <span className="text-sm text-gray-700">Positions Filled</span>
                   </div>
-                  <span className="text-sm font-medium">5/10</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '50%' }}></div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex items-center">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Screen 50 candidates</span>
-                  </div>
-                  <span className="text-sm font-medium">38/50</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '76%' }}></div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4">
-                  <div className="flex items-center">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Update job descriptions</span>
-                  </div>
-                  <span className="text-sm font-medium">Completed</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+                  <span className="text-sm font-medium text-green-600">{stats.positionsFilled}</span>
                 </div>
               </div>
+              
+              {stats.activeJobs > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    💼 You have {stats.activeJobs} active job{stats.activeJobs !== 1 ? 's' : ''} with {stats.totalApplicants} total applicant{stats.totalApplicants !== 1 ? 's' : ''} to review.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

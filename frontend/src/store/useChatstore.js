@@ -38,6 +38,27 @@ export const useChatstore = create((set, get) => ({
         }
     },
 
+    // Get specific recruiter for direct contact
+    getRecruiterForContact: async (recid) => {
+        try {
+            const resp = await axiosinstance.get(`/message/contact/${recid}`);
+            const recruiter = resp.data.recruiter;
+            
+            // Add this recruiter to the users list if not already present
+            const currentUsers = get().users;
+            const existingUser = currentUsers.find(user => user.recid === recid);
+            
+            if (!existingUser && recruiter) {
+                set({ users: [...currentUsers, recruiter] });
+            }
+            
+            return recruiter;
+        } catch (err) {
+            console.error("Error fetching recruiter for contact:", err);
+            return null;
+        }
+    },
+
     getmessages: async (userid) => {
         const authuser = useAuthstore.getState().authuser; // ✅ Correct access
         if (!authuser) return;

@@ -7,6 +7,7 @@ const BASE_URL = "http://localhost:5000";
 
 export const useAuthstore = create((set, get) => ({
   authuser: null,
+  userType: null,
   isSigningup: false,
   islogin: false,
   isupdateprofile: false,
@@ -15,29 +16,43 @@ export const useAuthstore = create((set, get) => ({
   socket: null,
 
   // ✅ Utility to set user manually
-  setAuthuser: (user) => {
-    localStorage.setItem('authuser', JSON.stringify(user));
-    set({ authuser: user });
+  setAuthuser: (user, userType = 'jobseeker') => {
+    const storageKey = userType === 'recruiter' ? 'authuser_recruiter' : 'authuser_jobseeker';
+    localStorage.setItem(storageKey, JSON.stringify(user));
+    set({ authuser: user, userType });
     // get().connectSocket();
   },
 
-  loadAuthuser: () => {
-  const storedUser = localStorage.getItem('authuser');
-  if (storedUser) {
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      set({ authuser: parsedUser });
-      get().connectSocket(); // ✅ ← this is the missing piece
-    } catch (err) {
-      console.error('Invalid JSON in authuser:', err);
+  loadAuthuser: (userType = 'jobseeker') => {
+    const storageKey = userType === 'recruiter' ? 'authuser_recruiter' : 'authuser_jobseeker';
+    const storedUser = localStorage.getItem(storageKey);
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        set({ authuser: parsedUser, userType });
+        // console.log("✅ Loaded authuser from localStorage:", parsedUser);
+        get().connectSocket(); // ✅ ← this is the missing piece
+      } catch (err) {
+        console.error('Invalid JSON in authuser:', err);
+      }
     }
-  }
-}
-,
+  },
 
   clearAuthuser: () => {
-    localStorage.removeItem('authuser');
-    set({ authuser: null });
+    // Clear both storage keys
+    localStorage.removeItem('authuser_jobseeker');
+    localStorage.removeItem('authuser_recruiter');
+    localStorage.removeItem('authuser'); // Legacy key
+    set({ authuser: null, userType: null });
+  },
+
+  logout: () => {
+    const { userType } = get();
+    const storageKey = userType === 'recruiter' ? 'authuser_recruiter' : 'authuser_jobseeker';
+    localStorage.removeItem(storageKey);
+    localStorage.removeItem('authuser'); // Legacy key
+    set({ authuser: null, userType: null });
+    get().disconnectSocket();
   },
   // ✅ SIGN UP
   signup: async (data) => {
@@ -69,9 +84,9 @@ export const useAuthstore = create((set, get) => ({
       });
 
       console.log("✅ Login response:", resp.data);
-      localStorage.setItem("authuser", JSON.stringify(resp.data.userdata)); // ✅ Correct usage
+      localStorage.setItem("authuser_jobseeker", JSON.stringify(resp.data.userdata)); // ✅ Separate key for jobseekers
       
-      set({ authuser: resp.data.userdata });
+      set({ authuser: resp.data.userdata, userType: 'jobseeker' });
       console.log("✅ Stored authuser in Zustand:", get().authuser);
 
       get().connectSocket();
@@ -95,8 +110,8 @@ export const useAuthstore = create((set, get) => ({
       console.log("✅ Login response:", resp.data);
       const userData = resp.data.userdata;
 
-localStorage.setItem("authuser", JSON.stringify(userData)); // ✅ Correct usage
-set({ authuser: userData });
+      localStorage.setItem("authuser_recruiter", JSON.stringify(userData)); // ✅ Separate key for recruiters
+      set({ authuser: userData, userType: 'recruiter' });
       
       console.log("✅ Stored authuser in Zustand:", get().authuser);
 
@@ -107,21 +122,6 @@ set({ authuser: userData });
       toast.error(error.response?.data?.message || "Login failed");
     } finally {
       set({ islogin: false });
-    }
-  },
-
-  // ✅ LOGOUT
-  logout: async () => {
-    try {
-      await axiosinstance.get("/auth/logout", {
-        headers: { "Content-Type": "application/json" },
-      });
-
-      set({ authuser: null });
-      get().disconnectSocket();
-      toast.success("Logged out successfully");
-    } catch (err) {
-      console.error("❌ Logout error:", err);
     }
   },
 

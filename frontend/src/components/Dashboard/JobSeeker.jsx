@@ -1,219 +1,196 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Bookmark, Calendar, ChevronDown, Clock, FileText, Home, Mail, MessageSquare, Search, Star, User, Timer, Briefcase, CheckCircle } from 'lucide-react';
+import { FileText, Star, Briefcase, CheckCircle, TrendingUp, Target, Award, Users, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthstore } from "../../store/useAuthstore";
+import axios from 'axios';
 
 const JobSeekerDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [timerActivity, setTimerActivity] = useState('Job Search');
-  const navigate=useNavigate();
-  const gotToNewPage=()=>{
-    navigate("/jobSeeker/profile");
-  }
-  // Timer effect
+  const navigate = useNavigate();
+  const { authuser, loadAuthuser } = useAuthstore();
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Load authuser on component mount
   useEffect(() => {
-    let interval = null;
-    
-    if (isTimerActive) {
-      interval = setInterval(() => {
-        setTimeSpent(seconds => seconds + 1);
-      }, 1000);
-    } else if (!isTimerActive && timeSpent !== 0) {
-      clearInterval(interval);
+    if (!authuser && localStorage.getItem("authuser_jobseeker")) {
+      loadAuthuser('jobseeker');
     }
-    
-    return () => clearInterval(interval);
-  }, [isTimerActive, timeSpent]);
-  
-  // Format time as HH:MM:SS
-  const formatTime = (time) => {
-    const hours = Math.floor(time / 3600);
-    const minutes = Math.floor((time % 3600) / 60);
-    const seconds = time % 60;
-    
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      seconds.toString().padStart(2, '0')
-    ].join(':');
-  };
-  
-  const toggleTimer = () => {
-    setIsTimerActive(!isTimerActive);
-  };
-  
-  const resetTimer = () => {
-    setTimeSpent(0);
-    setIsTimerActive(false);
+  }, [authuser, loadAuthuser]);
+
+  // Debug authuser
+  useEffect(() => {
+    if (authuser) {
+      console.log('Current authuser:', authuser);
+      console.log('Authuser keys:', Object.keys(authuser));
+      console.log('seekerId:', authuser.seekerId);
+      console.log('_id:', authuser._id);
+    }
+  }, [authuser]);
+
+  // Fetch user applications
+  useEffect(() => {
+    const fetchApplications = async () => {
+      // Try multiple possible ID fields
+      const userId = authuser?.seekerId || authuser?._id || authuser?.id;
+      
+      if (userId) {
+        try {
+          setLoading(true);
+          console.log('Fetching applications for user ID:', userId);
+          const response = await axios.get(`http://localhost:5000/api/jobseekers/applications/${userId}`);
+          console.log('Applications response:', response.data);
+          const applicationsData = response.data.applications || [];
+          setApplications(applicationsData);
+          
+          // Debug: Log the application statuses
+          console.log('Application statuses:', applicationsData.map(app => ({ 
+            id: app.jobId, 
+            status: app.status 
+          })));
+        } catch (error) {
+          console.error('Error fetching applications:', error);
+          console.error('Request URL was:', `http://localhost:5000/api/jobseekers/applications/${userId}`);
+          setApplications([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        console.log('No user ID found, cannot fetch applications');
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [authuser]);
+
+  // Navigate to profile
+  const goToProfile = () => {
+    const userId = authuser?.seekerId || authuser?._id || authuser?.id;
+    if (userId) {
+      navigate(`/userprofile/${userId}`);
+    } else {
+      console.error('No user ID found for navigation');
+    }
   };
 
-  const applications = [
-    { 
-      id: 1, 
-      company: 'Local Cafe', 
-      position: 'Barista', 
-      location: 'Downtown',
-      type: 'Part-time',
-      status: 'Interview',
-      statusColor: 'bg-yellow-500',
-      date: 'Apr 1, 2025' 
-    },
-    { 
-      id: 2, 
-      company: 'Retail Store', 
-      position: 'Sales Associate', 
-      location: 'Westfield Mall',
-      type: 'Part-time',
-      status: 'Applied',
-      statusColor: 'bg-blue-500',
-      date: 'Mar 30, 2025' 
-    },
-    { 
-      id: 3, 
-      company: 'University Library', 
-      position: 'Student Assistant', 
-      location: 'Campus',
-      type: 'Part-time',
-      status: 'Rejected',
-      statusColor: 'bg-red-500',
-      date: 'Mar 28, 2025' 
-    }
-  ];
+  const goToNewPage = () => {
+    navigate("/jobSeeker/profile");
+  };
+
+  // Calculate profile completion
+  const calculateProfileCompletion = () => {
+    if (!authuser) return 0;
+    
+    let completedFields = 0;
+    const totalFields = 8;
+    
+    if (authuser.name) completedFields++;
+    if (authuser.email) completedFields++;
+    if (authuser.phone) completedFields++;
+    if (authuser.address) completedFields++;
+    if (authuser.skills && authuser.skills.length > 0) completedFields++;
+    if (authuser.experience) completedFields++;
+    if (authuser.education) completedFields++;
+    if (authuser.resume) completedFields++;
+    
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
 
   const recommendations = [
+    // This can be populated with real job recommendations from your backend
     {
       id: 1,
-      title: 'Administrative Assistant',
-      company: 'Tech Solutions Inc.',
-      location: 'Remote',
-      salary: '$18-22/hr',
-      match: '95%'
-    },
-    {
-      id: 2,
-      title: 'Customer Service Rep',
-      company: 'Service Plus',
-      location: 'Downtown',
-      salary: '$16-20/hr',
-      match: '88%'
+      title: 'Looking for opportunities?',
+      company: 'Start by completing your profile',
+      location: 'All locations',
+      salary: 'Various ranges',
+      match: `${profileCompletion}%`
     }
-  ];
-
-  const upcoming = [
-    {
-      id: 1,
-      title: 'Interview with Local Cafe',
-      time: 'Today, 3:00 PM',
-      type: 'Video Call'
-    },
-    {
-      id: 2,
-      title: 'Complete Skills Assessment',
-      time: 'Tomorrow, 5:00 PM',
-      type: 'Online Test'
-    }
-  ];
-
-  const jobSearchActivities = [
-    'Job Search',
-    'Resume Writing',
-    'Application Forms',
-    'Cover Letters',
-    'Interview Prep',
-    'Networking'
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <div className="text-indigo-600 font-bold text-xl">FlexWork</div>
-              </div>
-              <div className="hidden sm:ml-8 sm:flex space-x-8">
-                <a 
-                  href="#" 
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`${activeTab === 'dashboard' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Dashboard
-                </a>
-                <button
-                
-      onClick={() => {
-        setActiveTab('jobs');
-        navigate('/findjobs');
-      }}
-      className={`${activeTab === 'jobs' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-    >
-      Find Jobs
-    </button>
-                <a 
-                  href="#"
-                  onClick={() => setActiveTab('applications')}
-                  className={`${activeTab === 'applications' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Applications
-                </a>
-                <button
-                
-                onClick={() => {
-                  setActiveTab('jobs');
-                  navigate('/message');
-                }}
-                className={`${activeTab === 'message' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-              >
-                Message
-              </button>
-              </div>
-            </div>
-            <div className="flex items-center">
-              <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
-                <Bell size={20} />
-              </button>
-              <div className="ml-4 relative flex-shrink-0">
-                <div className="flex items-center">
-                  <div style={{cursor:'pointer'} }className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium" onClick={() => gotToNewPage()}>
-                    JS
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-700 hidden md:block">Jamie Smith</span>
-                  <ChevronDown size={16} className="ml-1 text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, Jamie!</h1>
-          <p className="text-gray-600 mt-1">Here's what's happening with your job search today.</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {authuser?.name || 'Job Seeker'}!
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {profileCompletion < 50 
+              ? "Let's complete your profile to get started with better job matches."
+              : profileCompletion < 80
+              ? "You're making great progress! Complete your profile to unlock more opportunities."
+              : "Your profile looks great! Here's what's happening with your job search today."
+            }
+          </p>
         </div>
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">7</div>
-            <div className="text-sm text-gray-500">Active Applications</div>
+            <div className="text-3xl font-bold text-gray-900">{loading ? '...' : applications.length}</div>
+            <div className="text-sm text-gray-500">Total Applications</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">2</div>
-            <div className="text-sm text-gray-500">Upcoming Interviews</div>
+            <div className="text-3xl font-bold text-yellow-600">
+              {loading ? '...' : applications.filter(app => app.status === 'pending').length}
+            </div>
+            <div className="text-sm text-gray-500">Pending Applications</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-gray-900">15</div>
+            <div className="text-3xl font-bold text-green-600">
+              {loading ? '...' : applications.filter(app => app.status === 'accepted').length}
+            </div>
+            <div className="text-sm text-gray-500">Accepted Applications</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="text-3xl font-bold text-red-600">
+              {loading ? '...' : applications.filter(app => app.status === 'rejected').length}
+            </div>
+            <div className="text-sm text-gray-500">Rejected Applications</div>
+          </div>
+        </div>
+
+        {/* Profile & Activity Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{profileCompletion}%</div>
+                <div className="text-sm text-gray-500">Profile Complete</div>
+              </div>
+              <div className="ml-4">
+                <div className="w-16 h-16 relative">
+                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#4f46e5"
+                      strokeWidth="2"
+                      strokeDasharray={`${profileCompletion}, 100`}
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="text-3xl font-bold text-gray-900">{JSON.parse(localStorage.getItem('savedJobs') || '[]').length}</div>
             <div className="text-sm text-gray-500">Saved Jobs</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <div className="text-3xl font-bold text-indigo-600">24</div>
-            <div className="text-sm text-gray-500">Applications This Month</div>
           </div>
         </div>
 
@@ -226,42 +203,76 @@ const JobSeekerDashboard = () => {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-medium text-gray-900">Recent Applications</h2>
-                  <a href="#" className="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
+                  <button 
+                    onClick={() => navigate('/jobSeeker/applications')} 
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    View all
+                  </button>
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{app.company}</div>
-                          <div className="text-xs text-gray-500">{app.location}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{app.position}</div>
-                          <div className="text-xs text-gray-500">{app.type}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${app.statusColor} text-white`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {app.date}
-                        </td>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading applications...</p>
+                  </div>
+                ) : applications.length > 0 ? (
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Details</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Applied</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {applications.slice(0, 5).map((app, index) => (
+                        <tr key={app._id || index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{app.jobDetails?.title || 'Job Title'}</div>
+                            <div className="text-xs text-gray-500">{app.jobDetails?.location?.city || app.jobDetails?.city || 'Location not specified'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{app.jobDetails?.employer?.name || 'Company Name'}</div>
+                            <div className="text-xs text-gray-500">{app.jobDetails?.type || 'Full-time'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              app.status === 'accepted' ? 'bg-green-500' :
+                              app.status === 'rejected' ? 'bg-red-500' :
+                              app.status === 'pending' ? 'bg-yellow-500' : 'bg-blue-500'
+                            } text-white`}>
+                              {app.status || 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            }) : 'Date not available'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-12">
+                    <Briefcase size={48} className="mx-auto text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
+                    <p className="text-gray-500 mb-4">
+                      Start applying to jobs to see your application status here.
+                    </p>
+                    <button
+                      onClick={() => navigate('/jobSeeker/findjobs')}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                      Find Jobs
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -283,137 +294,208 @@ const JobSeekerDashboard = () => {
                         <div className="mt-1 text-xs text-gray-500">{job.salary}</div>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-xs font-medium text-green-600">{job.match} Match</span>
-                        <button className="mt-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-md hover:bg-indigo-200">Apply Now</button>
+                        <span className="text-xs font-medium text-green-600">{job.match} Complete</span>
+                        <button 
+                          onClick={() => navigate('/jobSeeker/findjobs')}
+                          className="mt-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-md hover:bg-indigo-200"
+                        >
+                          Explore Jobs
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
+                
+                {profileCompletion < 70 && (
+                  <div className="p-6 bg-yellow-50 border-l-4 border-yellow-400">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <Star className="h-5 w-5 text-yellow-400" />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-yellow-700">
+                          Complete your profile to get personalized job recommendations based on your skills and preferences.
+                        </p>
+                        <div className="mt-2">
+                          <button
+                            onClick={goToProfile}
+                            className="text-sm font-medium text-yellow-700 hover:text-yellow-600"
+                          >
+                            Update Profile →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Sidebar - 1/3 width */}
           <div className="space-y-6">
-            {/* Job Search Timer - NEW SECTION */}
+            {/* Profile Completion Status */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Job Search Timer</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Profile Completion</h2>
               <div className="flex flex-col items-center mb-4">
-                <div className="text-3xl font-mono text-gray-800 bg-gray-100 w-full py-4 text-center rounded-md">
-                  {formatTime(timeSpent)}
+                <div className="relative w-20 h-20 mb-4">
+                  <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      fill="transparent"
+                      className="text-gray-200"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      fill="transparent"
+                      strokeDasharray={`${profileCompletion * 2.51} 251`}
+                      className="text-indigo-600"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xl font-bold text-gray-900">{profileCompletion}%</span>
+                  </div>
                 </div>
-                <div className="mt-4 w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity</label>
-                  <select 
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={timerActivity}
-                    onChange={(e) => setTimerActivity(e.target.value)}
-                  >
-                    {jobSearchActivities.map((activity) => (
-                      <option key={activity} value={activity}>{activity}</option>
-                    ))}
-                  </select>
+                <p className="text-sm text-gray-600 text-center">
+                  {profileCompletion < 50 ? 'Complete your profile to increase visibility' :
+                   profileCompletion < 80 ? 'Almost there! Add more details' :
+                   'Great! Your profile looks complete'}
+                </p>
+              </div>
+              
+              {/* Profile completion checklist */}
+              <div className="space-y-2">
+                <div className={`flex items-center text-sm ${authuser?.name ? 'text-green-600' : 'text-gray-500'}`}>
+                  <CheckCircle size={16} className="mr-2" />
+                  <span>Basic Information</span>
+                </div>
+                <div className={`flex items-center text-sm ${authuser?.resume ? 'text-green-600' : 'text-gray-500'}`}>
+                  <CheckCircle size={16} className="mr-2" />
+                  <span>Resume Upload</span>
+                </div>
+                <div className={`flex items-center text-sm ${authuser?.skills?.length > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                  <CheckCircle size={16} className="mr-2" />
+                  <span>Skills & Experience</span>
+                </div>
+                <div className={`flex items-center text-sm ${authuser?.education ? 'text-green-600' : 'text-gray-500'}`}>
+                  <CheckCircle size={16} className="mr-2" />
+                  <span>Education Details</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={toggleTimer}
-                  className={`flex items-center justify-center p-2 rounded-md ${isTimerActive ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                >
-                  <Clock size={16} className="mr-2" />
-                  <span>{isTimerActive ? 'Pause' : 'Start'}</span>
-                </button>
-                <button 
-                  onClick={resetTimer}
-                  className="flex items-center justify-center p-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                >
-                  <span>Reset</span>
-                </button>
-              </div>
-              <div className="mt-4 text-xs text-gray-500">
-                Track your job search activities to stay productive and organized.
-              </div>
+              
+              <button 
+                onClick={goToProfile}
+                className="w-full mt-4 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                Complete Profile
+              </button>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <FileText size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Edit Resume</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <Search size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Job Search</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <Bookmark size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Saved Jobs</span>
-                </button>
-                <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-md hover:bg-gray-50">
-                  <User size={20} className="text-indigo-600" />
-                  <span className="mt-2 text-xs text-gray-600">Profile</span>
-                </button>
-              </div>
-            </div>
 
-            {/* Upcoming Events */}
+
+            {/* Career Tips */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Upcoming</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Career Tips</h2>
               <div className="space-y-4">
-                {upcoming.map((event) => (
-                  <div key={event.id} className="border border-gray-100 rounded-md p-4">
-                    <div className="flex items-start">
-                      <Calendar size={16} className="text-indigo-600 mt-1 mr-3" />
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">{event.title}</h3>
-                        <p className="text-xs text-gray-500 mt-1">{event.time}</p>
-                        <p className="text-xs text-gray-500">{event.type}</p>
-                      </div>
+                <div className="border border-gray-100 rounded-md p-4 bg-blue-50">
+                  <div className="flex items-start">
+                    <Star size={16} className="text-blue-600 mt-1 mr-3" />
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900">Optimize Your Profile</h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Complete profiles get 3x more views. Add skills, experience, and a professional photo.
+                      </p>
                     </div>
                   </div>
-                ))}
+                </div>
+                
+                <div className="border border-gray-100 rounded-md p-4 bg-green-50">
+                  <div className="flex items-start">
+                    <FileText size={16} className="text-green-600 mt-1 mr-3" />
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900">Tailor Your Applications</h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Customize your applications to match job requirements for better success rates.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border border-gray-100 rounded-md p-4 bg-purple-50">
+                  <div className="flex items-start">
+                    <Users size={16} className="text-purple-600 mt-1 mr-3" />
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900">Network Actively</h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Many jobs are filled through referrals. Connect with professionals in your field.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Application Goals - NEW SECTION */}
+            {/* Job Search Insights */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Weekly Goals</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Job Search Insights</h2>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Submit 5 applications</span>
+                    <TrendingUp size={16} className="text-blue-500 mr-2" />
+                    <span className="text-sm text-gray-700">Total applications</span>
                   </div>
-                  <span className="text-sm font-medium">3/5</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+                  <span className="text-sm font-medium">{applications.length}</span>
                 </div>
                 
-                <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Network with 3 people</span>
+                    <Eye size={16} className="text-green-500 mr-2" />
+                    <span className="text-sm text-gray-700">Profile views</span>
                   </div>
-                  <span className="text-sm font-medium">1/3</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '33%' }}></div>
+                  <span className="text-sm font-medium">
+                    {profileCompletion > 80 ? 'High' : profileCompletion > 50 ? 'Medium' : 'Low'}
+                  </span>
                 </div>
                 
-                <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <CheckCircle size={16} className="text-green-500 mr-2" />
-                    <span className="text-sm text-gray-700">Update LinkedIn profile</span>
+                    <Target size={16} className="text-purple-500 mr-2" />
+                    <span className="text-sm text-gray-700">Job matches</span>
                   </div>
-                  <span className="text-sm font-medium">Completed</span>
+                  <span className="text-sm font-medium">
+                    {authuser?.skills?.length > 0 ? 'Active' : 'Add skills'}
+                  </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Award size={16} className="text-orange-500 mr-2" />
+                    <span className="text-sm text-gray-700">Profile strength</span>
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    profileCompletion > 80 ? 'text-green-600' : 
+                    profileCompletion > 50 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {profileCompletion > 80 ? 'Strong' : profileCompletion > 50 ? 'Good' : 'Needs work'}
+                  </span>
                 </div>
               </div>
+              
+              {profileCompletion < 80 && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    💡 Complete your profile to get better job matches and increase visibility to employers.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

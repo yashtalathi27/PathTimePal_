@@ -80,9 +80,17 @@ const JobApplicationsPage = () => {
             >
               {/* Job Header */}
               <div className="bg-blue-50 p-4 border-b">
-                <h2 className="text-xl font-semibold text-blue-800">
-                  {job.title}
-                </h2>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-xl font-semibold text-blue-800">
+                      {job.title}
+                    </h2>
+                    <div className="mt-1 text-sm text-gray-600">
+                      <span className="font-medium">Job ID:</span> 
+                      <span className="ml-2 font-mono bg-white px-2 py-1 rounded border">{job.jobId}</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-sm text-gray-600">
                   <span>{job.type}</span>
                   <span>•</span>

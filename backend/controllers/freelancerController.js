@@ -194,7 +194,140 @@ async function handlesearch(req,res){
     }
 }
 
+async function getSeekerApplications(req, res) {
+    try {
+        const { id } = req.params; // seekerId
+        console.log("Fetching applications for seeker:", id);
 
+        // Get all applications for this seeker
+        const applications = await JobApplication.find({ seekerId: id }).lean();
+        
+        if (!applications || applications.length === 0) {
+            return res.status(200).json({ message: "No applications found", applications: [] });
+        }
+
+        // Get job details for each application
+        const applicationsWithJobDetails = await Promise.all(
+            applications.map(async (app) => {
+                const job = await Job.findOne({ jobId: app.jobId }).lean();
+                
+                console.log(`Application ${app._id}: jobId=${app.jobId}, providerId=${app.providerId}, status=${app.status}`);
+                if (job) {
+                    console.log(`Job found: ${job.title} by ${job.employer?.name}`);
+                } else {
+                    console.log(`Job not found for jobId: ${app.jobId}`);
+                }
+                
+                return {
+                    applicationId: app._id,
+                    jobId: app.jobId,
+                    providerId: app.providerId,
+                    status: app.status,
+                    appliedAt: app.appliedAt,
+                    jobDetails: job ? {
+                        title: job.title,
+                        company: job.employer?.name || 'Unknown Company',
+                        location: job.location,
+                        salary: job.salary,
+                        type: job.type,
+                        description: job.description
+                    } : null
+                };
+            })
+        );
+
+        res.status(200).json({ 
+            message: "Applications fetched successfully", 
+            applications: applicationsWithJobDetails 
+        });
+
+    } catch (error) {
+        console.error("Error fetching seeker applications:", error);
+        res.status(500).json({ error: "Failed to get applications", details: error.message });
+    }
+}
+
+async function updateProfile(req, res) {
+    try {
+        const { id } = req.params; // seekerId
+        const updateData = req.body;
+        
+        console.log("Updating profile for seeker:", id);
+        console.log("Update data:", updateData);
+
+        const updatedUser = await jobSeekers.findOneAndUpdate(
+            { seekerId: id },
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal server error", 
+            error: error.message 
+        });
+    }
+}
+
+async function uploadResume(req, res) {
+    try {
+        const { id } = req.params; // seekerId
+        
+        if (!req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "No file uploaded" 
+            });
+        }
+
+        // In a real application, you would upload to cloud storage like AWS S3, Cloudinary, etc.
+        // For now, we'll just store the file path
+        const resumeUrl = `/uploads/resumes/${req.file.filename}`;
+
+        const updatedUser = await jobSeekers.findOneAndUpdate(
+            { seekerId: id },
+            { resume: resumeUrl },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Resume uploaded successfully",
+            resumeUrl: resumeUrl,
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Error uploading resume:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal server error", 
+            error: error.message 
+        });
+    }
+}
 
 module.exports={
     createjobSeeker,
@@ -204,5 +337,8 @@ module.exports={
     getUserById,
     updateUserByID,
     handleapply,
-    handlesearch
+    handlesearch,
+    getSeekerApplications,
+    updateProfile,
+    uploadResume
 }

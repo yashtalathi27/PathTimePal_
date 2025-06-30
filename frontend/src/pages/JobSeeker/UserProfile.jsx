@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit, User, Mail, Phone, MapPin, Briefcase, Clock } from 'lucide-react';
+import { useAuthstore } from '../../store/useAuthstore';
 import axios from 'axios';
-// import { log } from 'console';
 
 const UserProfile = () => {
+  const { authuser, loadAuthuser } = useAuthstore();
   const [isEditing, setIsEditing] = useState(false);
   const [user, setUser] = useState({
     name: 'Emily Johnson',
@@ -21,7 +22,13 @@ const UserProfile = () => {
   });
 
   const { id } = useParams();
-  console.log(id);
+  
+  // Load authuser on component mount if not already loaded
+  useEffect(() => {
+    if (!authuser && localStorage.getItem("authuser_jobseeker")) {
+      loadAuthuser('jobseeker');
+    }
+  }, [authuser, loadAuthuser]);
 
   async function fetchUserData() {
     try {

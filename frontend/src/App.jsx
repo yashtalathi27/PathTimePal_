@@ -13,12 +13,35 @@ import { useAuthstore } from './store/useAuthstore';
 function App() {
   const [count, setCount] = useState(0);
   const { authuser, loadAuthuser} = useAuthstore();
-    const storedUser = localStorage.getItem('authuser');
-    useEffect(() => {
-    if (!authuser && localStorage.getItem("authuser")) {
-      loadAuthuser();
+  
+  useEffect(() => {
+    // Always try to load authuser on app initialization
+    if (!authuser) {
+      // Check for job seeker first
+      if (localStorage.getItem("authuser_jobseeker")) {
+        loadAuthuser('jobseeker');
+      }
+      // Then check for recruiter
+      else if (localStorage.getItem("authuser_recruiter")) {
+        loadAuthuser('recruiter');
+      }
+      // Fallback to old key for backward compatibility
+      else if (localStorage.getItem("authuser")) {
+        // Try to determine user type from old data
+        const oldUser = JSON.parse(localStorage.getItem("authuser"));
+        if (oldUser.seekerId) {
+          localStorage.setItem("authuser_jobseeker", JSON.stringify(oldUser));
+          loadAuthuser('jobseeker');
+        } else if (oldUser.recid) {
+          localStorage.setItem("authuser_recruiter", JSON.stringify(oldUser));
+          loadAuthuser('recruiter');
+        }
+        // Clean up old key
+        localStorage.removeItem("authuser");
+      }
     }
-  }, [authuser]);
+  }, [authuser, loadAuthuser]);
+
   return (
     <>
       <Navbar />
