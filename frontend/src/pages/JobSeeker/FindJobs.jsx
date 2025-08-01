@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Bookmark, ChevronDown, ChevronLeft, ChevronRight, Briefcase, Clock, DollarSign, Calendar, Tag, Filter, Building, Zap, FileText, CheckCircle } from 'lucide-react';
 import { useAuthstore } from '../../store/useAuthstore';
+import { useLanguage } from '../../contexts/LanguageContext';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 
@@ -20,6 +21,11 @@ const FindJobsPage = () => {
   const [jobsPerPage] = useState(20);
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Language selection variable
+  const { language } = useLanguage();
+  const [selang, setSelang] = useState(language);
+  
   const loc = useLocation();
 
   const jobTypes = ['All Types', 'Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary', 'Freelance'];
@@ -34,6 +40,15 @@ const FindJobsPage = () => {
   ];
 
   const { authuser, setAuthuser, loadAuthuser } = useAuthstore();
+  
+  // Helper function to handle translation objects
+  const getTranslatedText = (text) => {
+    if (!text) return '';
+    if (typeof text === 'string') return text;
+    if (typeof text === 'object' && text[selang]) return text[selang];
+    if (typeof text === 'object' && text.en) return text.en;
+    return text;
+  };
   
   // Load authuser on component mount if not already loaded
   useEffect(() => {
@@ -55,6 +70,13 @@ const FindJobsPage = () => {
       setSavedJobs(JSON.parse(saved));
     }
   }, []);
+
+  // Update selang when global language changes
+  useEffect(() => {
+    setSelang(selang);
+    setJobs(jobs);
+    fetchRecommendations(1);
+  }, [selang]);
 
   // Save job functionality
   const toggleSaveJob = (job) => {
@@ -124,18 +146,20 @@ const FindJobsPage = () => {
         // Use ML recommendation service for intelligent search
         console.log('Using ML search with:', { title: searchTerm, city: location });
         try {
-          const res = await axios.post('http://127.0.0.1:8000/recommends', {
+          const res = await axios.post('http://localhost:5000/', {
             title: searchTerm || "job",
             city: location || "Mumbai",
             salary: 0,
-            job: "0"
+            job: "0",
+            lang: selang
           });
-          console.log('ML search response:', res.data);
+     
+          console.log('ML search response:', res.data.jobs);
           
           // Check if ML service returned valid data
-          if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-            setJobs(res.data);
-            setTotalPages(Math.ceil(res.data.length / jobsPerPage));
+          if (res.data.jobs && Array.isArray(res.data.jobs) && res.data.jobs.length > 0) {
+            setJobs(res.data.jobs);
+            setTotalPages(Math.ceil(res.data.jobs.length / jobsPerPage));
             setCurrentPage(1); // Reset to first page for search results
             return;
           } else if (res.data && res.data.message) {
@@ -162,6 +186,7 @@ const FindJobsPage = () => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('limit', jobsPerPage.toString());
+        params.append('language', selang);
         
         const res = await axios.get(`http://localhost:5000/api/jobs/all?${params.toString()}`);
         console.log('All jobs response:', res.data);
@@ -184,6 +209,7 @@ const FindJobsPage = () => {
         const params = new URLSearchParams();
         params.append('page', '1');
         params.append('limit', jobsPerPage.toString());
+        params.append('language', selang);
         const res = await axios.get(`http://localhost:5000/api/jobs/all?${params.toString()}`);
         console.log('Fallback response:', res.data);
         setJobs(res.data.jobs || []);
@@ -236,12 +262,13 @@ const FindJobsPage = () => {
   // Load jobs on component mount
   useEffect(() => {
     fetchRecommendations(1);
+
   }, []);
 
   // Filter and sort jobs
   const filteredJobs = jobs.filter(job => {
-    if (jobType !== 'All Types' && job.type !== jobType) return false;
-    if (category !== 'All Categories' && job.category !== category) return false;
+    if (jobType !== 'All Types' && getTranslatedText(job.type) !== jobType) return false;
+    if (category !== 'All Categories' && getTranslatedText(job.category) !== category) return false;
     // Add more filtering logic as needed
     return true;
   });
@@ -251,13 +278,16 @@ const FindJobsPage = () => {
 
   const formatSalary = (salary) => {
     if (!salary) return 'Salary not specified';
-    if (typeof salary === 'object') {
-      const amount = salary.amount || 0;
+    if (typeof salary === 'object' && salary.amount) {
+      const amount = parseInt(salary.amount) || 0;
       const currency = salary.currency || 'USD';
       const frequency = salary.frequency || 'monthly';
       return `${currency} ${amount.toLocaleString()}/${frequency}`;
     }
-    return salary;
+    if (typeof salary === 'string' || typeof salary === 'number') {
+      return `₹ ${parseInt(salary).toLocaleString()}/month`;
+    }
+    return 'Salary not specified';
   };
 
   const formatDate = (dateString) => {
@@ -408,7 +438,7 @@ const FindJobsPage = () => {
               )}
             </div>
             <button 
-              onClick={() => showFilters ? searchWithFilters(1) : fetchRecommendations(1)} 
+              onClick={()=>fetchRecommendations(1)} 
               className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <Search size={16} className="mr-2 inline" />
@@ -490,7 +520,7 @@ const FindJobsPage = () => {
               {/* Grid View */}
               <div className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {currentJobs.map((job, index) => (
+                  {jobs.map((job, index) => (
                     <div 
                       key={job.jobId || index} 
                       className={`bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all duration-200 ${selectedJob?.jobId === job.jobId ? 'ring-2 ring-indigo-500 shadow-md' : 'hover:border-indigo-300'}`}
@@ -514,16 +544,16 @@ const FindJobsPage = () => {
 
                       {/* Job Info */}
                       <div className="mb-3">
-                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">{job.title}</h3>
+                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">{getTranslatedText(job.title)}</h3>
                         <p className="text-xs text-gray-600 mb-2">
-                          {job.employer?.name || 'Company Name'}
+                          {getTranslatedText(job.employer?.name) || 'Company Name'}
                         </p>
                         
                         <div className="flex items-center text-xs text-gray-500 mb-1">
                           <MapPin size={12} className="mr-1" />
                           <span className="line-clamp-1">
-                            {job.location?.city || job.city || 'Location not specified'}
-                            {job.location?.area && `, ${job.location.area}`}
+                            {getTranslatedText(job.location?.city) || getTranslatedText(job.city) || 'Location not specified'}
+                            {job.location?.area && `, ${getTranslatedText(job.location.area)}`}
                           </span>
                         </div>
                         
@@ -536,11 +566,11 @@ const FindJobsPage = () => {
                       {/* Tags */}
                       <div className="flex flex-wrap gap-1 mb-3">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          {job.type || 'Full-time'}
+                          {getTranslatedText(job.type) || 'Full-time'}
                         </span>
                         {job.category && (
                           <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                            {job.category}
+                            {getTranslatedText(job.category)}
                           </span>
                         )}
                       </div>
@@ -569,7 +599,7 @@ const FindJobsPage = () => {
                 </div>
 
                 {/* No Jobs Message */}
-                {currentJobs.length === 0 && (
+                {jobs.length === 0 && (
                   <div className="text-center py-12">
                     <Briefcase size={48} className="mx-auto text-gray-300 mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Found</h3>
@@ -675,15 +705,15 @@ const FindJobsPage = () => {
                   
                   {/* Job Header */}
                   <div className="border-b border-gray-100 pb-4 mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedJob.title}</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">{getTranslatedText(selectedJob.title)}</h1>
                     <div className="flex items-center space-x-4 text-gray-600 mb-4">
                       <div className="flex items-center">
                         <Building size={16} className="mr-1" />
-                        {selectedJob.employer?.name || 'Company Name'}
+                        {getTranslatedText(selectedJob.employer?.name) || 'Company Name'}
                       </div>
                       <div className="flex items-center">
                         <MapPin size={16} className="mr-1" />
-                        {selectedJob.location?.city || selectedJob.city || 'Location not specified'}
+                        {getTranslatedText(selectedJob.location?.city) || getTranslatedText(selectedJob.city) || 'Location not specified'}
                       </div>
                       <div className="flex items-center">
                         <Calendar size={16} className="mr-1" />
@@ -694,11 +724,11 @@ const FindJobsPage = () => {
                     {/* Job Tags */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
-                        {selectedJob.type || 'Full-time'}
+                        {getTranslatedText(selectedJob.type) || 'Full-time'}
                       </span>
                       {selectedJob.category && (
                         <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
-                          {selectedJob.category}
+                          {getTranslatedText(selectedJob.category)}
                         </span>
                       )}
                       <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full font-medium">
@@ -767,11 +797,11 @@ const FindJobsPage = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Type:</span>
-                            <span className="font-medium">{selectedJob.type || 'Not specified'}</span>
+                            <span className="font-medium">{getTranslatedText(selectedJob.type) || 'Not specified'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Category:</span>
-                            <span className="font-medium">{selectedJob.category || 'Not specified'}</span>
+                            <span className="font-medium">{getTranslatedText(selectedJob.category) || 'Not specified'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Salary:</span>
@@ -781,12 +811,7 @@ const FindJobsPage = () => {
                             <span className="text-gray-600">Vacancies:</span>
                             <span className="font-medium">{selectedJob.vacancies || 'Not specified'}</span>
                           </div>
-                          {selectedJob.duration && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Duration:</span>
-                              <span className="font-medium">{selectedJob.duration}</span>
-                            </div>
-                          )}
+                          
                         </div>
                       </div>
 
@@ -831,7 +856,7 @@ const FindJobsPage = () => {
                         <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
                         <div className="text-gray-700 text-sm leading-relaxed">
                           <div dangerouslySetInnerHTML={{
-                            __html: selectedJob.description.replace(/\n/g, '<br>')
+                            __html: getTranslatedText(selectedJob.description).replace(/\n/g, '<br>')
                           }} />
                         </div>
                       </div>
@@ -845,7 +870,7 @@ const FindJobsPage = () => {
                           {selectedJob.requirements.map((req, index) => (
                             <li key={index} className="flex items-start">
                               <span className="text-indigo-500 mr-2">•</span>
-                              <span className="text-gray-700">{req}</span>
+                              <span className="text-gray-700">{getTranslatedText(req)}</span>
                             </li>
                           ))}
                         </ul>
@@ -859,7 +884,7 @@ const FindJobsPage = () => {
                         <div className="flex flex-wrap gap-2">
                           {selectedJob.skills.map((skill, index) => (
                             <span key={index} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-sm rounded-full border border-indigo-200">
-                              {skill}
+                              {getTranslatedText(skill)}
                             </span>
                           ))}
                         </div>

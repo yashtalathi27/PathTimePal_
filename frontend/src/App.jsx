@@ -9,6 +9,7 @@ import Footer from "./components/Others/Footer";
 import Navbar from "./components/Others/Navbar";
 // import moduleName from 'useAuth'
 import { useAuthstore } from './store/useAuthstore';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 function App() {
   const [count, setCount] = useState(0);
@@ -43,11 +44,11 @@ function App() {
   }, [authuser, loadAuthuser]);
 
   return (
-    <>
+    <LanguageProvider>
       <Navbar />
       <Outlet />
       <Footer />
-    </>
+    </LanguageProvider>
   );
 }
 

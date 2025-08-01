@@ -89,7 +89,7 @@ async function userLogin(req,res) {
         console.log(email,password);
         
         const user=await jobSeekers.findOne({email,password});
-        console.log(user);
+        console.log("bhj",user);
         if(user){
             console.log(1);
             res.status(200).json({userdata:user});
@@ -196,9 +196,10 @@ async function handlesearch(req,res){
 
 async function getSeekerApplications(req, res) {
     try {
-        const { id } = req.params; // seekerId
+        const { id, language } = req.params; // seekerId
         console.log("Fetching applications for seeker:", id);
-
+        console.log(language);
+        
         // Get all applications for this seeker
         const applications = await JobApplication.find({ seekerId: id }).lean();
         
@@ -213,7 +214,7 @@ async function getSeekerApplications(req, res) {
                 
                 console.log(`Application ${app._id}: jobId=${app.jobId}, providerId=${app.providerId}, status=${app.status}`);
                 if (job) {
-                    console.log(`Job found: ${job.title} by ${job.employer?.name}`);
+                    console.log(`Job found: ${job.title?.[language]} by ${job.employer?.name?.[language]}`);
                 } else {
                     console.log(`Job not found for jobId: ${app.jobId}`);
                 }
@@ -225,12 +226,12 @@ async function getSeekerApplications(req, res) {
                     status: app.status,
                     appliedAt: app.appliedAt,
                     jobDetails: job ? {
-                        title: job.title,
-                        company: job.employer?.name || 'Unknown Company',
-                        location: job.location,
-                        salary: job.salary,
-                        type: job.type,
-                        description: job.description
+                        title: job.title?.[language],
+                        company: job.employer?.name?.[language] || 'Unknown Company',
+                        location: job.location.city?.[language],
+                        salary: job.salary.amount.en,
+                        type: job.type?.[language],
+                        description: job.description?.[language]
                     } : null
                 };
             })

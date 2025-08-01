@@ -1,6 +1,6 @@
-const { RecruiterUser } = require('../model/rec');
-const { JobApplication } = require('../database/application');
-const { jobSeekers } = require('../model/freelancer'); // Import the jobSeekers model
+const { RecruiterUser } = require('../model/rec.js');
+const { JobApplication } = require('../database/application.js');
+const { jobSeekers } = require('../model/freelancer.js'); // Import the jobSeekers model
 const Job = require("../database/postjob.model.js"); // Keep this import
 
 async function userLogin(req, res) {

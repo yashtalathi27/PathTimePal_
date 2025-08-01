@@ -1,19 +1,33 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
-import pandas as pd
-import numpy as np
-import ast
-import geocoder
+from fastapi.middleware.cors import CORSMiddleware
+from googletrans import Translator
 from nltk.stem import PorterStemmer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.neighbors import NearestNeighbors
+import pandas as pd
+import numpy as np
+import ast
+import uuid
+import uvicorn
+import json
+# from sentence_transformers import SentenceTransformer
+# from gemini import get_field_weights
+# Initialize FastAPI app
+app = FastAPI()
+translator = Translator()
 
-# Load and clean data
-data = pd.read_csv("jobs_converted_utf8.csv")
-extra = pd.read_csv("jobs_converted_utf8.csv")
-data = data[['jobId','title','category', 'tags', 'skills', 'location.city', 'salary.amount', 'employer.name', 'latitude', 'longitude', 'recid', 'description', 'requirements']]
-data.dropna(inplace=True)
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ========== Data Loading and Preprocessing ========== #
 
 def convert(text):
     return [item.strip() for item in text.replace(", and", ",").split(",")]
@@ -22,7 +36,10 @@ def torep(text):
     return text.replace("-", " ")
 
 def format_str_list(ls):
-    return ast.literal_eval(ls)
+    try:
+        return ast.literal_eval(ls)
+    except:
+        return []
 
 def remove_space(lst):
     return [x.replace(" ", "") for x in lst]
@@ -30,28 +47,37 @@ def remove_space(lst):
 def convert_to_list(num):
     return [num]
 
-data['employer.name'] = data['employer.name'].apply(convert).apply(remove_space)
-data['category'] = data['category'].apply(convert)
-data['name'] = data['title'].apply(convert).apply(remove_space)
-data['city'] = data['location.city'].apply(convert)
-data['tags'] = data['tags'].apply(torep).apply(format_str_list).apply(remove_space)
-data['skills'] = data['skills'].apply(format_str_list).apply(remove_space)
-data['salary'] = data['salary.amount'].apply(convert_to_list)
+def preprocess():
+    df = pd.read_csv("jobs_converted_utf8.csv")
+    df = df[['jobId', 'title', 'category', 'tags', 'skills', 'location.city', 'salary.amount',
+             'employer.name', 'latitude', 'longitude', 'recid', 'description', 'requirements']]
+    df.dropna(inplace=True)
 
-data['tag'] = data['city'] + data['name'] + data['category'] + data['tags'] + data['skills']
+    df['employer.name'] = df['employer.name'].apply(convert).apply(remove_space)
+    df['category'] = df['category'].apply(convert)
+    df['name'] = df['title'].apply(convert).apply(remove_space)
+    df['city'] = df['location.city'].apply(convert)
+    df['tags'] = df['tags'].apply(torep).apply(format_str_list).apply(remove_space)
+    df['skills'] = df['skills'].apply(format_str_list).apply(remove_space)
+    df['salary'] = df['salary.amount'].apply(convert_to_list)
+    df['tag'] = df['city'] + df['name'] + df['category'] + df['tags'] + df['skills']
 
-new_df = data[['jobId', 'title', 'salary.amount', 'location.city', 'tag', 'latitude', 'longitude', 'recid', 'description', 'requirements', 'employer.name']]
-new_df['tag'] = new_df['tag'].apply(lambda x: " ".join(map(str, x))).str.lower()
+    new_df = df[['jobId', 'title', 'salary.amount', 'location.city', 'tag', 'latitude',
+                 'longitude', 'recid', 'description', 'requirements', 'employer.name']].copy()
+    new_df['tag'] = new_df['tag'].apply(lambda x: " ".join(map(str, x))).str.lower()
 
-ps = PorterStemmer()
-def stems(text):
-    return " ".join([ps.stem(i) for i in text.split()])
-new_df['tag'] = new_df['tag'].apply(stems)
+    ps = PorterStemmer()
+    new_df['tag'] = new_df['tag'].apply(lambda text: " ".join([ps.stem(i) for i in text.split()]))
 
-cv = CountVectorizer(max_features=5000, stop_words='english')
-vector = cv.fit_transform(new_df['tag']).toarray()
-similarity = cosine_similarity(vector)
+    cv = CountVectorizer(max_features=5000, stop_words='english')
+    vector = cv.fit_transform(new_df['tag']).toarray()
+    similarity = cosine_similarity(vector)
+    return df, new_df, similarity, cv
 
+# Load initial data
+data, new_df, similarity, cv = preprocess()
+
+# Allowed cities and coordinates
 ALLOWED_CITIES = {"Bangalore", "Mysore", "Mumbai", "Pune", "Delhi", "Lucknow", "Ahmedabad"}
 CITY_COORDINATES = {
     "Bangalore": (12.9716, 77.5946), "Mysore": (12.2958, 76.6394),
@@ -60,8 +86,7 @@ CITY_COORDINATES = {
     "Ahmedabad": (23.0225, 72.5714),
 }
 
-# FastAPI setup
-app = FastAPI()
+# ========== Schemas ========== #
 
 class RecommendRequest(BaseModel):
     title: str
@@ -78,10 +103,14 @@ class JobInput(BaseModel):
     maxSalary: int
     description: str
 
+# ========== Endpoints ========== #
+
 @app.post("/add-job")
 async def add_job(job: JobInput):
+    global data, new_df, similarity, cv
+
     new_job = {
-        "jobId": "101",
+        "jobId": str(uuid.uuid4()),
         "title": job.title,
         "category": "General",
         "tags": str(job.tags),
@@ -91,19 +120,24 @@ async def add_job(job: JobInput):
         "location.area": "central",
         "employer.name": "New Corp",
         "description": job.description,
+        "requirements": "N/A",
         "latitude": 0.0,
         "longitude": 0.0,
+        "recid": "N/A"
     }
+
     df = pd.read_csv("jobs_converted_utf8.csv")
     df = pd.concat([df, pd.DataFrame([new_job])], ignore_index=True)
     df.to_csv("jobs_converted_utf8.csv", index=False)
+
+    # Reload and reprocess data
+    data, new_df, similarity, cv = preprocess()
     return {"status": "Job added"}
 
 @app.post("/recommends")
 async def recommend_endpoint(req: RecommendRequest):
     title = req.title
     city = req.city
-    salary = req.salary
 
     index = new_df[new_df['title'].str.contains(title, case=False, na=False)].index
     if len(index) == 0:
@@ -119,15 +153,8 @@ async def recommend_endpoint(req: RecommendRequest):
         rec_list.append({
             'jobId': new_df.iloc[i].jobId,
             'title': new_df.iloc[i].title,
-            'city': job_city,
-            'salary': new_df.iloc[i]['salary.amount'],
-            'similarity': dist,
             'latitude': new_df.iloc[i]['latitude'],
             'longitude': new_df.iloc[i]['longitude'],
-            'recid': new_df.iloc[i]['recid'],   
-            'description': new_df.iloc[i]['description'],
-            'requirements': new_df.iloc[i]['requirements'],
-            'employer.name': new_df.iloc[i]['employer.name'],
         })
 
     rec = pd.DataFrame(rec_list)
@@ -136,32 +163,129 @@ async def recommend_endpoint(req: RecommendRequest):
 
     rec['title_match'] = rec['title'].str.contains(title, case=False, na=False).astype(int)
 
-    if city in ALLOWED_CITIES:
+    if city and city in ALLOWED_CITIES:
         city_lat, city_lon = CITY_COORDINATES[city]
+        user_location = np.radians([[city_lat, city_lon]])
     else:
-        g = geocoder.ip('me')
-        if g.latlng:
-            city_lat, city_lon = g.latlng
-        else:
-            return {"message": "Could not determine user location from IP."}
+        return {"message": f"City '{city}' is not supported. Supported cities: {', '.join(ALLOWED_CITIES)}"}
 
-    user_location = np.radians([[city_lat, city_lon]])
     job_locations = np.radians(rec[['latitude', 'longitude']].to_numpy())
-
     nbrs = NearestNeighbors(n_neighbors=min(20, len(job_locations)), metric="haversine").fit(job_locations)
     distances, indices = nbrs.kneighbors(user_location)
     within_radius = np.degrees(distances) * 111 <= 500
     filtered_indices = indices[0][within_radius[0]]
     rec = rec.iloc[filtered_indices]
 
-    rec = rec.sort_values(by=['title_match', 'similarity'], ascending=[False, False])
-    #print(order)
-    return rec.head(20).to_dict(orient='records')
-   
+    rec = rec.sort_values(by=['title_match'], ascending=[False])
+    return rec.head(20)[['jobId']].to_dict(orient='records')
+
+# ========== Translation API ========== #
+
+def translate_text(text, dest_lang='hi'):
+    if text is None or str(text).strip() == '':
+        return '' if text is None else str(text)
+    try:
+        translated = translator.translate(str(text), dest=dest_lang)
+        return translated.text
+    except Exception as e:
+        print(f"Translation error for '{text}': {e}")
+        return str(text)
+
+def convert_record(record):
+    return {
+        key: {
+            "en": str(value) if value is not None else '',
+            "hi": translate_text(str(value) if value is not None else '')
+        }
+        for key, value in record.items()
+    }
+
+@app.post("/translate-job")
+async def translate_job(request: Request):
+    body = await request.json()
+    bilingual_job = convert_record(body)
+    return bilingual_job
+
+# ========== text recommendations ========== #
+# # Input query
+# input_query = "I want job in Pune or Mumbai from 6pm to 7 pm"
+
+# # Load model
+# print("Loading model...")
+# model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# # Load job data
+# print("Loading jobs...")
+# with open("joblist.json", "r", encoding="utf-8") as f:
+#     raw_jobs = json.load(f)
+
+# # Flatten each job entry
+# def flatten_job_entry(entry):
+#     return {
+#         "jobId": int(entry["jobId"]["en"]),
+#         "title": entry["title"]["en"],
+#         "description": entry["description"]["en"],
+#         "requirements": entry["requirements"]["en"],
+#         "type": entry["type"]["en"],
+#         "category": entry["category"]["en"],
+#         "duration": entry["duration"]["en"],
+#         "tags": eval(entry["tags"]["en"]),
+#         "skills": eval(entry["skills"]["en"]),
+#         "salary": int(entry["salary"]["amount"]["en"]),
+#         "preferred_start": entry["preferredTime.start"]["en"],
+#         "preferred_end": entry["preferredTime.end"]["en"],
+#         "city": entry["location"]["city"]["en"],
+#         "area": entry["location"]["area"]["en"],
+#         "days": eval(entry["schedule.days"]["en"]),
+#     }
+
+# # Combine into job text
+# def get_job_text(row, weights):
+#     fields = [
+#         ("title", row["title"]),
+#         ("description", row["description"]),
+#         ("requirements", row["requirements"]),
+#         ("type", row["type"]),
+#         ("category", row["category"]),
+#         ("duration", row["duration"]),
+#         ("skills", " ".join(row["skills"])),
+#         ("salary.amount", str(row["salary"])),
+#         ("preferredTime", f"{row['preferred_start']} {row['preferred_end']}"),
+#         ("location", f"{row['city']} {row['area']}"),
+#         ("schedule.days", " ".join(row["days"]))
+#     ]
+#     weighted_text = []
+#     for field, value in fields:
+#         weight = weights.get(field, 1.0)
+#         weighted_text.append((value + " ") * int(weight * 10))  # replicate based on weight
+#     return " ".join(weighted_text)
+
+# # Get weights from Gemini
+# weights = get_field_weights(input_query)
+
+# # Process and encode
+# jobs = [flatten_job_entry(e) for e in raw_jobs]
+# df = pd.DataFrame(jobs)
+# df['text'] = df.apply(lambda row: get_job_text(row, weights), axis=1)
+
+# print("\nGenerated Weighted Job Texts:")
+# print(df[['jobId', 'text']].to_string(index=False))
+
+# print("Encoding jobs...")
+# job_embeddings = model.encode(df['text'].tolist(), show_progress_bar=True)
+# query_embedding = model.encode([input_query])
+
+# # Compute similarity
+# scores = cosine_similarity(query_embedding, job_embeddings)[0]
+# top_indices = scores.argsort()[-10:][::-1]
+# top_job_ids = df.iloc[top_indices]['jobId'].tolist()
+
+# print("Top Matching Job IDs:")
+# print(top_job_ids)
 
 
-# Run with python main.py
+
+# ========== Run Server ========== #
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

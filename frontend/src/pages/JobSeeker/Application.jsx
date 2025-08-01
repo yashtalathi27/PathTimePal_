@@ -27,7 +27,13 @@ function Application() {
     const fetchApplications = async () => {
         try {
             setLoading(true);
-            const response = await axiosinstance.get(`/jobseekers/applications/${authuser.seekerId}`);
+                  var language=localStorage.getItem("language");
+        //   const params = new URLSearchParams();
+        //   params.append("language", language);
+          console.log(language)
+            const response = await axiosinstance.get(`/jobseekers/applications/${authuser.seekerId}/${language}`);
+            console.log(response);
+                
             setApplications(response.data.applications || []);
         } catch (error) {
             console.error("Error fetching applications:", error);

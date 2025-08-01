@@ -38,7 +38,7 @@ route.post('/login', userLogin);
 route.post('/signin', signinJobSeeker);
 route.post('/apply', handleapply);
 route.post('/findjobs', handlesearch);
-route.get('/applications/:id', getSeekerApplications);
+route.get('/applications/:id/:language', getSeekerApplications);
 
 module.exports=route;
  

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { FileText, Star, Briefcase, CheckCircle, TrendingUp, Target, Award, Users, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthstore } from "../../store/useAuthstore";
 import axios from 'axios';
+import { axiosinstance } from '../../lib/axios';
 
 const JobSeekerDashboard = () => {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ const JobSeekerDashboard = () => {
       loadAuthuser('jobseeker');
     }
   }, [authuser, loadAuthuser]);
-
+  console.log("Afdsad");
+  
   // Debug authuser
   useEffect(() => {
     if (authuser) {
@@ -32,15 +34,20 @@ const JobSeekerDashboard = () => {
     const fetchApplications = async () => {
       // Try multiple possible ID fields
       const userId = authuser?.seekerId || authuser?._id || authuser?.id;
+      console.log("jnbnlk",userId);
       
       if (userId) {
         try {
           setLoading(true);
           console.log('Fetching applications for user ID:', userId);
-          const response = await axios.get(`http://localhost:5000/api/jobseekers/applications/${userId}`);
-          console.log('Applications response:', response.data);
+                            var language=localStorage.getItem("language");
+                  //   const params = new URLSearchParams();
+                  //   params.append("language", language);
+                    console.log(language)
+                      const response = await axiosinstance.get(`/jobseekers/applications/${userId}/${language}`);
+          console.log('Applications response:', response);
           const applicationsData = response.data.applications || [];
-          setApplications(applicationsData);
+          setApplications(applicationsData); 
           
           // Debug: Log the application statuses
           console.log('Application statuses:', applicationsData.map(app => ({ 

@@ -2,16 +2,23 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Bell, User, Menu, X, Grid, List, Briefcase, LogOut, CheckCircle } from "lucide-react";
 import { useAuthstore } from "../../store/useAuthstore";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { getTranslation } from "../../utils/translations";
+import LanguageToggle from "./LanguageToggle";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { authuser, logout, loadAuthuser } = useAuthstore();
+  const { language } = useLanguage();
   
   // Navbar state
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // for job listings
+
+  // Helper function to get translated text
+  const t = (key) => getTranslation(key, language);
 
   // Load authuser on component mount if not already loaded
   useEffect(() => {
@@ -66,8 +73,11 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
+            {/* Language Toggle */}
+            <LanguageToggle />
+
             {/* View Toggle (for job pages) */}
-            {location.pathname === '/findJobs' && (
+            {/* {location.pathname === '/findJobs' && (
               <div className="flex items-center border border-gray-600 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -88,7 +98,7 @@ const Navbar = () => {
                   <List size={16} />
                 </button>
               </div>
-            )}
+            )} */}
 
             {/* Navigation Links */}
             {!authuser ? (
@@ -102,7 +112,7 @@ const Navbar = () => {
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                   }`}
                 >
-                  Find Jobs
+                  {t('findJobs')}
                 </Link>
                 <Link 
                   to="/postjob" 
@@ -112,19 +122,19 @@ const Navbar = () => {
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                   }`}
                 >
-                  Post a Job
+                  {t('postJob')}
                 </Link>
                 <Link 
                   to="/login"
                   className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Login
+                  {t('login')}
                 </Link>
                 <Link 
                   to="/signup"
                   className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
                 >
-                  Sign Up
+                  {t('signup')}
                 </Link>
               </>
             ) : (
@@ -140,7 +150,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Dashboard
+                      {t('dashboard')}
                     </Link>
                     <Link 
                       to="/findJobs" 
@@ -150,7 +160,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Find Jobs
+                      {t('findJobs')}
                     </Link>
                     <Link 
                       to="/application" 
@@ -160,7 +170,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Applications
+                      {t('applications')}
                     </Link>
                   </>
                 )}
@@ -175,7 +185,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Dashboard
+                      {t('dashboard')}
                     </Link>
                     <Link 
                       to="/postjob" 
@@ -185,7 +195,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Post Job
+                      {t('postJob')}
                     </Link>
                     <Link 
                       to={`/candidate/${authuser.recid}`} 
@@ -195,7 +205,7 @@ const Navbar = () => {
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                     >
-                      Candidates
+                      {t('candidates')}
                     </Link>
                   </>
                 )}
@@ -208,7 +218,7 @@ const Navbar = () => {
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                   }`}
                 >
-                  Messages
+                  {t('messages')}
                 </Link>
               </>
             )}
@@ -235,7 +245,7 @@ const Navbar = () => {
                       {authuser.name || 'User'}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {authuser.seekerId ? 'Job Seeker' : 'Recruiter'}
+                      {authuser.seekerId ? t('jobSeeker') : t('recruiter')}
                     </div>
                   </div>
                 </button>
@@ -262,19 +272,19 @@ const Navbar = () => {
                       {authuser.seekerId && (
                         <div className="mt-2">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Profile Status:</span>
+                            <span className="text-gray-500">{t('profileStatus')}</span>
                             <span className={`px-2 py-1 rounded-full ${
                               authuser.isEmployed 
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-blue-100 text-blue-800'
                             }`}>
-                              {authuser.isEmployed ? 'Employed' : 'Job Seeking'}
+                              {authuser.isEmployed ? t('employed') : t('jobSeeking')}
                             </span>
                           </div>
                           {authuser.resume && (
                             <div className="flex items-center mt-1 text-xs text-green-600">
                               <CheckCircle size={12} className="mr-1" />
-                              Resume uploaded
+                              {t('resumeUploaded')}
                             </div>
                           )}
                         </div>
@@ -286,7 +296,7 @@ const Navbar = () => {
                         className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         <User size={16} className="mr-2" />
-                        My Profile
+                        {t('myProfile')}
                       </button>
                       {authuser.seekerId && (
                         <button
@@ -297,7 +307,7 @@ const Navbar = () => {
                           className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           <Briefcase size={16} className="mr-2" />
-                          Find Jobs
+                          {t('findJobs')}
                         </button>
                       )}
                       <hr className="my-1 border-gray-200" />
@@ -306,7 +316,7 @@ const Navbar = () => {
                         className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <LogOut size={16} className="mr-2" />
-                        Log out
+                        {t('logout')}
                       </button>
                     </div>
                   </div>
@@ -330,20 +340,25 @@ const Navbar = () => {
         {showMobileMenu && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 bg-gray-800">
+              {/* Language Toggle for Mobile */}
+              <div className="px-3 py-2">
+                <LanguageToggle />
+              </div>
+              
               {/* Mobile navigation links */}
               {!authuser ? (
                 <>
                   <Link to="/findJobs" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    Find Jobs
+                    {t('findJobs')}
                   </Link>
                   <Link to="/postjob" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    Post a Job
+                    {t('postJob')}
                   </Link>
                   <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    Login
+                    {t('login')}
                   </Link>
                   <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium bg-indigo-600 text-white">
-                    Sign Up
+                    {t('signup')}
                   </Link>
                 </>
               ) : (
@@ -351,13 +366,13 @@ const Navbar = () => {
                   {authuser.seekerId && (
                     <>
                       <Link to="/jobSeekerDashboard" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Dashboard
+                        {t('dashboard')}
                       </Link>
                       <Link to="/findJobs" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Find Jobs
+                        {t('findJobs')}
                       </Link>
                       <Link to="/application" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Applications
+                        {t('applications')}
                       </Link>
                     </>
                   )}
@@ -365,25 +380,25 @@ const Navbar = () => {
                   {authuser.recid && (
                     <>
                       <Link to={`/RDashboard/${authuser.recid}`} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Dashboard
+                        {t('dashboard')}
                       </Link>
                       <Link to="/postjob" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Post Job
+                        {t('postJob')}
                       </Link>
                       <Link to={`/candidate/${authuser.recid}`} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                        Candidates
+                        {t('candidates')}
                       </Link>
                     </>
                   )}
                   
                   <Link to="/message" className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    Messages
+                    {t('messages')}
                   </Link>
                   <button onClick={goToProfile} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    My Profile
+                    {t('myProfile')}
                   </button>
                   <button onClick={handleLogout} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-red-900">
-                    Log out
+                    {t('logout')}
                   </button>
                 </>
               )}

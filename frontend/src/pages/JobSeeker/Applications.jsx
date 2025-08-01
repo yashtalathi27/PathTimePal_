@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { ArrowLeft, Briefcase, Calendar, MapPin, Building, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthstore } from '../../store/useAuthstore';
@@ -10,13 +10,18 @@ const ApplicationsPage = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-
+  console.log(authuser);
+  
   // Fetch user applications
   useEffect(() => {
     const fetchApplications = async () => {
-      if (authuser?.seekerId) {
+       
         try {
           setLoading(true);
+          var language=localStorage.getItem("language");
+          // const params = new URLSearchParams();
+          // params.append("language", language);
+          console.log(language)
           const response = await axios.get(`http://localhost:5000/api/jobseekers/applications/${authuser.seekerId}`);
           console.log('Applications response:', response.data);
           setApplications(response.data.applications || []);
@@ -26,9 +31,7 @@ const ApplicationsPage = () => {
         } finally {
           setLoading(false);
         }
-      } else {
-        setLoading(false);
-      }
+      
     };
 
     fetchApplications();

@@ -1,41 +1,62 @@
 const mongoose = require("mongoose");
 let schema = mongoose.Schema;
 
+const localizedString = {
+  en: { type: String, required: false },
+  hi: { type: String, required: false }
+};
+
+const localizedArray = {
+  en: { type: [String], required: false },
+  hi: { type: [String], required: false }
+};
 
 const jobSchema = new schema({
-  jobId: { type: String, required: true },
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  requirements: { type: String },
+  jobId: String,
+  title: localizedString,
+  description: localizedString,
+  requirements: localizedString,
+
   salary: {
-    amount: { type: Number, required: true },
-    currency: { type: String, required: true },
-    frequency: { type: String, required: true }
+    amount: localizedString,
+    currency: localizedString,
+    frequency: localizedString
   },
-  type: { type: String, required: true },
-  category: { type: String },
+
+  type: localizedString,
+  category: localizedString,
   preferredTime: {
-    start: { type: String },
-    end: { type: String }
+    start: localizedString,
+    end: localizedString
   },
+
   location: {
-    city: { type: String, required: true },
-    area: { type: String }
+    city: localizedString,
+    area: localizedString
   },
+
   employer: {
-    name: { type: String, required: true },
-    contact: { type: String },
-    phone: { type: String },
-    owner: { type: String }
+    name: localizedString,
+    contact: localizedString,
+    phone: localizedString,
+    owner: localizedString
   },
-  slug: { type: String, unique: true },
-  isApplied: { type: Boolean, default: false },
-  tags: { type: [String] },
-  duration: { type: String },
-  
-  skills: { type: [String] },
-  vacancies: { type: Number, default: 1 },
-  recid: { type: String, required: true }
+
+  slug: localizedString,
+  isApplied: localizedString, // you can change this to Boolean if storing true/false as boolean
+  tags: localizedArray,
+  duration: localizedString,
+  skills: localizedArray,
+  vacancies: localizedString,
+
+  schedule: {
+    shifts: localizedString, // ideally store shifts as array of objects instead of string
+    days: localizedArray
+  },
+
+  latitude: localizedString,
+  longitude: localizedString,
+  recid: String
 });
 
 const Job = mongoose.model("Job", jobSchema);

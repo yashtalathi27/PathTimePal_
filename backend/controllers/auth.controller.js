@@ -59,7 +59,7 @@ export const login = async (req, res) => {
         if (!isPassValid) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
-        console.log(user)
+        console.log("User found:", user);
         res.status(200).json({
             _id: user._id,
             fullname: user.fullname,

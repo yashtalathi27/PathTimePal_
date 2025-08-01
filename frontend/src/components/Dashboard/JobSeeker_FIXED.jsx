@@ -40,7 +40,11 @@ const JobSeekerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/jobs/seeker-stats/${authuser.seekerId}`);
+                            var language=localStorage.getItem("language");
+                  //   const params = new URLSearchParams();
+                  //   params.append("language", language);
+                    console.log(language)
+                      const response = await axios.get(`/jobseekers/applications/${authuser.seekerId}/${language}`);
       const { stats, recentApplications } = response.data;
       
       setDashboardStats(stats);
