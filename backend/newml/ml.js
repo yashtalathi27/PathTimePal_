@@ -3,10 +3,21 @@ const { Job } = require('../model/job.js');
 const getJobsByIds = async ( jobIds = [], language = 'en', page = 1, limit = 100) => {
   try {
     // Ensure jobIds are all strings
-    const stringJobIds = jobIds.map(id => id.toString());
-
+    const stringJobIds = jobIds.map(id => id.toString())
+    // console.log(stringJobIds);
+    
     // Fetch jobs with matching jobId.en
-    const jobs = await Job.find({ "jobId": { $in: stringJobIds } });
+    const allJobs = await Job.find({ "jobId": { $in: stringJobIds } });
+
+// Create a map from jobId string to job
+const jobMap = new Map();
+allJobs.forEach(job => {
+  const jobIdStr = typeof job.jobId === 'object' ? job.jobId.en?.toString() : job.jobId?.toString();
+  if (jobIdStr) jobMap.set(jobIdStr, job);
+});
+
+// Reorder jobs to match the input order
+const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
 
     // Localize fields
     const localizedJobs = jobs.map(job => {
@@ -65,5 +76,6 @@ const getJobsByIds = async ( jobIds = [], language = 'en', page = 1, limit = 100
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
 
 module.exports = { getJobsByIds };

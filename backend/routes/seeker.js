@@ -2,7 +2,9 @@ const express=require('express');
 const multer = require('multer');
 const path = require('path');
 const route=express.Router()
-const {createjobSeeker,getUserById,signinJobSeeker,userLogin,updateUserByID, handleapply, handlesearch, getSeekerApplications, updateProfile, uploadResume}=require('../controllers/freelancerController')
+const {dailywagesJobs,createjobSeeker,getUserById,signinJobSeeker,userLogin,updateUserByID, handleapply, handlesearch, getSeekerApplications, updateProfile, uploadResume}=require('../controllers/freelancerController')
+
+const {getJobsByText}=require('../controllers/ml.js');
 
 // Configure multer for resume uploads
 const storage = multer.diskStorage({
@@ -39,6 +41,7 @@ route.post('/signin', signinJobSeeker);
 route.post('/apply', handleapply);
 route.post('/findjobs', handlesearch);
 route.get('/applications/:id/:language', getSeekerApplications);
-
+route.post('/recommendation_by_text', getJobsByText);
+route.get("/dailywagesJobs",dailywagesJobs);
 module.exports=route;
  

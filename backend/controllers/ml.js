@@ -33,5 +33,29 @@ async function connectML(req, res) {
     }
 }
 
+async function getJobsByText(req,res) {
+    try {
+        // console.log("Sending data to FastAPI service:", dataToSend);
+        const { textosend, language } = req.body;
+        console.log(textosend);
+        
+        var lang = language || 'en'; // Default to English if no language is provided
+        var query=textosend || '';
+        const response = await axios.post('http://127.0.0.1:8000/recommend_by_text', { query });
+        console.log(response.data);
+        
+        // const jobIds = response.data.map(job => job.jobId);
+        const jobs = await getJobsByIds(response.data, lang);
 
-module.exports = { connectML };
+        if (!jobs || jobs.length === 0) {
+            return res.status(404).json({ message: "No jobs found for the recommended IDs." });
+        }
+
+        res.json(jobs);
+    } catch (error) {
+        console.error("Error fetching jobs by description:", error.message || error);
+        res.status(500).json({ message: "Error fetching jobs by description." });
+    }
+}
+
+module.exports = { connectML, getJobsByText };

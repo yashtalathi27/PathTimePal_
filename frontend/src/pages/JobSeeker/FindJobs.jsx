@@ -4,6 +4,7 @@ import { useAuthstore } from '../../store/useAuthstore';
 import { useLanguage } from '../../contexts/LanguageContext';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+// import { Query } from 'mongoose';
 
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +22,8 @@ const FindJobsPage = () => {
   const [jobsPerPage] = useState(20);
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
-  
+  const [textosend, setTextosend] = useState('');
+
   // Language selection variable
   const { language } = useLanguage();
   const [selang, setSelang] = useState(language);
@@ -259,6 +261,42 @@ const FindJobsPage = () => {
     }
   };
 
+  const getjobbytext = async (page = 1) => {
+    try {
+      console.log('Getting jobs by text with:', { textosend, language: selang });
+      
+      const res = await axios.post(`http://localhost:5000/api/jobseekers/recommendation_by_text`, {
+        textosend,
+        language: selang,
+        limit: jobsPerPage.toString(),
+        page: page.toString()
+      });
+      
+      console.log('Job recommendations by text response:', res.data);
+      
+      // Handle the response based on the API structure
+      if (res.data && res.data.jobs && Array.isArray(res.data.jobs)) {
+        setJobs(res.data.jobs);
+        setTotalPages(res.data.totalPages || Math.ceil(res.data.jobs.length / jobsPerPage));
+        setCurrentPage(parseInt(res.data.currentPage) || page);
+        
+        // Show success message
+        console.log(`Found ${res.data.jobs.length} AI-recommended jobs based on your description`);
+      } else if (res.data && res.data.message) {
+        console.log('AI recommendation message:', res.data.message);
+        alert('AI Response: ' + res.data.message);
+      } else {
+        console.log('No jobs found for your description');
+        setJobs([]);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
+    } catch (error) {
+      console.error('Error getting AI job recommendations:', error);
+      alert('Failed to get AI recommendations. Please try again or use regular search.');
+    }
+  };
+
   // Load jobs on component mount
   useEffect(() => {
     fetchRecommendations(1);
@@ -339,73 +377,93 @@ const FindJobsPage = () => {
 
         {/* Enhanced Search Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">What</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search size={18} className="text-gray-400" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left side - Search fields */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">What</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={18} className="text-gray-400" />
+                    </div>
+                    <input 
+                      type="text" 
+                      value={searchTerm} 
+                      onChange={e => setSearchTerm(e.target.value)} 
+                      placeholder="Job title, keywords, or company" 
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                    />
+                  </div>
                 </div>
-                <input 
-                  type="text" 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)} 
-                  placeholder="Job title, keywords, or company" 
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                />
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Where</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MapPin size={18} className="text-gray-400" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Where</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin size={18} className="text-gray-400" />
+                    </div>
+                    <input 
+                      type="text" 
+                      value={location} 
+                      onChange={e => setLocation(e.target.value)} 
+                      placeholder="City, state, or remote" 
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                    />
+                  </div>
                 </div>
-                <input 
-                  type="text" 
-                  value={location} 
-                  onChange={e => setLocation(e.target.value)} 
-                  placeholder="City, state, or remote" 
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
-              <div className="relative">
-                <select 
-                  value={jobType} 
-                  onChange={e => setJobType(e.target.value)} 
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+              
+              <div className="flex justify-center">
+                <button 
+                  onClick={()=>fetchRecommendations(1)} 
+                  className="bg-indigo-600 text-white px-8 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 >
-                  {jobTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <ChevronDown size={16} className="text-gray-400" />
-                </div>
+                  <Search size={16} className="mr-2 inline" />
+                  Search Jobs
+                </button>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salary Range</label>
-              <div className="relative">
-                <select 
-                  value={salaryRange} 
-                  onChange={e => setSalaryRange(e.target.value)} 
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
-                >
-                  {salaryRanges.map(range => (
-                    <option key={range} value={range}>{range}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <ChevronDown size={16} className="text-gray-400" />
+            {/* Right side - Help field (highlighted key feature) */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <Zap size={18} className="text-indigo-600 mr-2" />
+                <label className="block text-sm font-medium text-indigo-800">🚀 AI-Powered Job Discovery</label>
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  NEW
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Zap size={18} className="text-indigo-500" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={textosend} 
+                    onChange={e => setTextosend(e.target.value)} 
+                    placeholder="Confused??? ... tell us what you're looking for" 
+                    className="block w-full pl-10 pr-3 py-3 border-2 border-indigo-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white placeholder-indigo-400 text-gray-900" 
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && textosend.trim()) {
+                        getjobbytext(1);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <button 
+                    onClick={() => textosend.trim() && getjobbytext(1)} 
+                    disabled={!textosend.trim()}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-md hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    <Zap size={16} className="mr-2" />
+                    Send AI Request
+                  </button>
                 </div>
               </div>
+              <p className="text-xs text-indigo-600 mt-2">Describe your ideal job in natural language - our AI will find matching opportunities!</p>
             </div>
           </div>
 
@@ -426,7 +484,6 @@ const FindJobsPage = () => {
                     setLocation('');
                     setJobType('All Types');
                     setCategory('All Categories');
-                    setSalaryRange('Any Salary');
                     setDatePosted('Any Time');
                     setId('');
                     fetchRecommendations(1);
@@ -437,18 +494,28 @@ const FindJobsPage = () => {
                 </button>
               )}
             </div>
-            <button 
-              onClick={()=>fetchRecommendations(1)} 
-              className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <Search size={16} className="mr-2 inline" />
-              Search Jobs
-            </button>
           </div>
 
           {/* Advanced Filters */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+                <div className="relative">
+                  <select 
+                    value={jobType} 
+                    onChange={e => setJobType(e.target.value)} 
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+                  >
+                    {jobTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <ChevronDown size={16} className="text-gray-400" />
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select 
@@ -472,16 +539,6 @@ const FindJobsPage = () => {
                     <option key={filter} value={filter}>{filter}</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job ID</label>
-                <input 
-                  type="text" 
-                  value={id} 
-                  onChange={e => setId(e.target.value)} 
-                  placeholder="Enter specific job ID" 
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                />
               </div>
             </div>
           )}
@@ -616,7 +673,6 @@ const FindJobsPage = () => {
                           setLocation('');
                           setJobType('All Types');
                           setCategory('All Categories');
-                          setSalaryRange('Any Salary');
                           setDatePosted('Any Time');
                           setId('');
                           fetchRecommendations(1);

@@ -1,6 +1,7 @@
 const { RecruiterUser } = require('../model/rec.js');
 const { JobApplication } = require('../database/application.js');
 const { jobSeekers } = require('../model/freelancer.js'); // Import the jobSeekers model
+const DailyWageJob=require("../model/dailywages")
 const Job = require("../database/postjob.model.js"); // Keep this import
 
 async function userLogin(req, res) {
@@ -84,11 +85,29 @@ async function getJobs(req, res) {
         return res.status(500).json({ message: 'Internal server error' });
     }
 }
+async function dailywages(req, res) {
+    try {
+        const jobData = req.body;
+        const { id } = req.params;
 
+        jobData.recid = id; // Assign recruiter ID
 
+        console.log("Received jobData:", jobData); // ✅ Log the data before create
 
+        const createdJob = await DailyWageJob.create(jobData);
 
+        console.log('New daily wage job created');
+        res.status(201).json({ message: 'Daily wage job created successfully', data: createdJob });
+
+    } catch (error) {
+        console.error('Error creating daily wage job:', error);
+        res.status(500).json({ message: 'Failed to create daily wage job', error: error.message });
+    }
+}
+
+    //   jj
 module.exports = {
     userLogin,
-    getJobs
+    getJobs,
+    dailywages
 };

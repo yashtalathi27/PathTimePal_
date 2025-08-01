@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 // const { ObjectId } = mongoose.Types;
 const {JobApplication}=require('../database/application');
 // const {jobSeekers}=require('../model/freelancer');
+const DailyWageJob=require("../model/dailywages")
 
 async function createjobSeeker(req, res) {
     try {
@@ -90,7 +91,7 @@ async function userLogin(req,res) {
         
         const user=await jobSeekers.findOne({email,password});
         console.log("bhj",user);
-        if(user){
+        if(user){ 
             console.log(1);
             res.status(200).json({userdata:user});
         }else{
@@ -329,7 +330,16 @@ async function uploadResume(req, res) {
         });
     }
 }
-
+async function dailywagesJobs(req, res) {
+  try {
+    const data = await DailyWageJob.find(); // Await the async operation
+    console.log(data);
+    return res.status(200).json({ message: 'Jobs fetched successfully', data });
+  } catch (error) {
+    console.error('Error fetching daily wage jobs:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+}
 module.exports={
     createjobSeeker,
     googleLoginJobSeeker,
@@ -341,5 +351,6 @@ module.exports={
     handlesearch,
     getSeekerApplications,
     updateProfile,
-    uploadResume
+    uploadResume,
+    dailywagesJobs
 }

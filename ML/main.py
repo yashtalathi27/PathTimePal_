@@ -12,9 +12,9 @@ import ast
 import uuid
 import uvicorn
 import json
-# from sentence_transformers import SentenceTransformer
-# from gemini import get_field_weights
-# Initialize FastAPI app
+from sentence_transformers import SentenceTransformer
+from gemini import get_field_weights
+#Initialize FastAPI app
 app = FastAPI()
 translator = Translator()
 
@@ -207,85 +207,86 @@ async def translate_job(request: Request):
     return bilingual_job
 
 # ========== text recommendations ========== #
-# # Input query
-# input_query = "I want job in Pune or Mumbai from 6pm to 7 pm"
-
-# # Load model
-# print("Loading model...")
-# model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# # Load job data
-# print("Loading jobs...")
-# with open("joblist.json", "r", encoding="utf-8") as f:
-#     raw_jobs = json.load(f)
-
-# # Flatten each job entry
-# def flatten_job_entry(entry):
-#     return {
-#         "jobId": int(entry["jobId"]["en"]),
-#         "title": entry["title"]["en"],
-#         "description": entry["description"]["en"],
-#         "requirements": entry["requirements"]["en"],
-#         "type": entry["type"]["en"],
-#         "category": entry["category"]["en"],
-#         "duration": entry["duration"]["en"],
-#         "tags": eval(entry["tags"]["en"]),
-#         "skills": eval(entry["skills"]["en"]),
-#         "salary": int(entry["salary"]["amount"]["en"]),
-#         "preferred_start": entry["preferredTime.start"]["en"],
-#         "preferred_end": entry["preferredTime.end"]["en"],
-#         "city": entry["location"]["city"]["en"],
-#         "area": entry["location"]["area"]["en"],
-#         "days": eval(entry["schedule.days"]["en"]),
-#     }
-
-# # Combine into job text
-# def get_job_text(row, weights):
-#     fields = [
-#         ("title", row["title"]),
-#         ("description", row["description"]),
-#         ("requirements", row["requirements"]),
-#         ("type", row["type"]),
-#         ("category", row["category"]),
-#         ("duration", row["duration"]),
-#         ("skills", " ".join(row["skills"])),
-#         ("salary.amount", str(row["salary"])),
-#         ("preferredTime", f"{row['preferred_start']} {row['preferred_end']}"),
-#         ("location", f"{row['city']} {row['area']}"),
-#         ("schedule.days", " ".join(row["days"]))
-#     ]
-#     weighted_text = []
-#     for field, value in fields:
-#         weight = weights.get(field, 1.0)
-#         weighted_text.append((value + " ") * int(weight * 10))  # replicate based on weight
-#     return " ".join(weighted_text)
-
-# # Get weights from Gemini
-# weights = get_field_weights(input_query)
-
-# # Process and encode
-# jobs = [flatten_job_entry(e) for e in raw_jobs]
-# df = pd.DataFrame(jobs)
-# df['text'] = df.apply(lambda row: get_job_text(row, weights), axis=1)
-
-# print("\nGenerated Weighted Job Texts:")
-# print(df[['jobId', 'text']].to_string(index=False))
-
-# print("Encoding jobs...")
-# job_embeddings = model.encode(df['text'].tolist(), show_progress_bar=True)
-# query_embedding = model.encode([input_query])
-
-# # Compute similarity
-# scores = cosine_similarity(query_embedding, job_embeddings)[0]
-# top_indices = scores.argsort()[-10:][::-1]
-# top_job_ids = df.iloc[top_indices]['jobId'].tolist()
-
-# print("Top Matching Job IDs:")
-# print(top_job_ids)
 
 
+
+
+class TextRecommendRequest(BaseModel):
+    query: str
+
+# Load model and job data once at startup
+print("Loading model...")
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+print("Loading jobs...")
+with open("joblist.json", "r", encoding="utf-8") as f:
+    raw_jobs = json.load(f)
+
+def flatten_job_entry(entry):
+    return {
+        "jobId": int(entry["jobId"]["en"]),
+        "title": entry["title"]["en"],
+        "description": entry["description"]["en"],
+        "requirements": entry["requirements"]["en"],
+        "type": entry["type"]["en"],
+        "category": entry["category"]["en"],
+        "duration": entry["duration"]["en"],
+        "tags": eval(entry["tags"]["en"]),
+        "skills": eval(entry["skills"]["en"]),
+        "salary": int(entry["salary"]["amount"]["en"]),
+        "preferred_start": entry["preferredTime.start"]["en"],
+        "preferred_end": entry["preferredTime.end"]["en"],
+        "city": entry["location"]["city"]["en"],
+        "area": entry["location"]["area"]["en"],
+        "days": eval(entry["schedule.days"]["en"]),
+    }
+
+def get_job_text(row, weights):
+    fields = [
+        ("title", row["title"]),
+        ("description", row["description"]),
+        ("requirements", row["requirements"]),
+        ("type", row["type"]),
+        ("category", row["category"]),
+        ("duration", row["duration"]),
+        ("skills", " ".join(row["skills"])),
+        ("salary.amount", str(row["salary"])),
+        ("preferredTime", f"{row['preferred_start']} {row['preferred_end']}"),
+        ("location", f"{row['city']} {row['area']}"),
+        ("schedule.days", " ".join(row["days"]))
+    ]
+    weighted_text = []
+    for field, value in fields:
+        weight = weights.get(field, 1.0)
+        weighted_text.append((value + " ") * int(weight * 10))
+    return " ".join(weighted_text)
+
+
+@app.post("/recommend_by_text")
+async def recommend_by_text(req: TextRecommendRequest):
+    try:
+        query = req.query
+        weights = get_field_weights(query)
+
+        jobs = [flatten_job_entry(e) for e in raw_jobs]
+        df = pd.DataFrame(jobs)
+        df['text'] = df.apply(lambda row: get_job_text(row, weights), axis=1)
+
+        job_embeddings = model.encode(df['text'].tolist(), show_progress_bar=False)
+        query_embedding = model.encode([query])
+
+        scores = cosine_similarity(query_embedding, job_embeddings)[0]
+        top_indices = scores.argsort()[-20:][::-1]
+        top_job_ids = df.iloc[top_indices]['jobId'].tolist()
+
+        return top_job_ids
+    except Exception as e:
+        return {"error": str(e)}
 
 # ========== Run Server ========== #
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+

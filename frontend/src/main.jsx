@@ -10,6 +10,7 @@ import "./index.css";
 import App from "./App.jsx";
 import { Provider } from "react-redux";
 import store from "./utils/store.js";
+import DailyWageJobList from "./pages/JobSeeker/DailyWageJobList.jsx"
 import Findjobs from "./pages/JobRecruter/Findjobs.jsx";
 import PostJobPage from "./pages/JobRecruter/PostJobPage.jsx";
 import Register_form from "./pages/auth/Register_form.jsx";
@@ -24,7 +25,7 @@ import MessagesRoute from "./pages/JobRecruter/Message.jsx";
 import { persistor } from "./utils/store.js";
 import { PersistGate } from "redux-persist/integration/react";
 import Application from "./pages/JobSeeker/Application.jsx";
-
+import DailyWageJobForm from "./pages/JobRecruter/DailyWageJobForm.jsx"
 import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
 import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
 import RecruiterDashboard from "./components/Dashboard/Employer.jsx";
@@ -63,6 +64,8 @@ const router = createBrowserRouter([
       { path: "chat", element: <ChatBox /> }, // ✅ This was missing!
       { path: "message", element: <MessagesRoute /> },
       { path: "application", element: <Application /> },
+      { path: "dailywages", element: < DailyWageJobForm/> },
+      {path:"dailywagesjobs",element:<DailyWageJobList/>}
     ],
   },
 ]);
