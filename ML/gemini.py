@@ -7,7 +7,7 @@ genai.configure(api_key="AIzaSyDR0RRjmj5xaGnzbTOnhJzDu_NT9HN1l2o")
 # List of job fields
 FIELDS = [
     "title", "description", "requirements", "type", "category", "duration",
-    "skills", "salary.amount", "preferredTime", "location", "schedule.days"
+    "skills", "salary.amount", "preferredTime", "location"
 ]
 
 # Prompt template
@@ -26,7 +26,7 @@ The fields are:
 - salary.amount
 - preferredTime (start + end)
 - location (city + area)
-- schedule.days
+
 
 ### Examples:
 
@@ -44,8 +44,8 @@ The fields are:
   "skills": 0.4,
   "salary.amount": 0.3,
   "preferredTime": 0.9,
-  "location": 1.0,
-  "schedule.days": 0.5
+  "location": 1.0
+ 
 }}
 
 ---
@@ -62,8 +62,7 @@ The fields are:
   "skills": 1.0,
   "salary.amount": 1.0,
   "preferredTime": 0.2,
-  "location": 0.3,
-  "schedule.days": 0.3
+  "location": 0.3
 }}
 
 ---
@@ -80,8 +79,7 @@ The fields are:
   "skills": 0.5,
   "salary.amount": 0.3,
   "preferredTime": 0.6,
-  "location": 1.0,
-  "schedule.days": 0.9
+  "location": 1.0
 }}
 
 ---

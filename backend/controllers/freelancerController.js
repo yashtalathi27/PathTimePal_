@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const {JobApplication}=require('../database/application');
 // const {jobSeekers}=require('../model/freelancer');
 const DailyWageJob=require("../model/dailywages")
+const DailyWageApplication = require('../model/dailywageApplication');
 
 async function createjobSeeker(req, res) {
     try {
@@ -340,6 +341,95 @@ async function dailywagesJobs(req, res) {
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 }
+
+// Apply to a daily wage job
+async function applyToDailyWageJob(req, res) {
+    try {
+        const { jobId, seekerId } = req.body;
+        
+        // Check if the job exists
+        const job = await DailyWageJob.findById(jobId);
+        if (!job) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+        
+        // Check if the seeker exists
+        const seeker = await jobSeekers.findOne({ seekerId: seekerId });
+        if (!seeker) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job seeker not found'
+            });
+        }
+        
+        // Check if already applied
+        const existingApplication = await DailyWageApplication.findOne({ jobId, seekerId });
+        if (existingApplication) {
+            return res.status(400).json({
+                success: false,
+                message: 'You have already applied to this job'
+            });
+        }
+        
+        // Create new application
+        const newApplication = new DailyWageApplication({
+            jobId,
+            seekerId,
+            status: 'pending'
+        });
+        
+        const savedApplication = await newApplication.save();
+        
+        res.status(201).json({
+            success: true,
+            message: 'Application submitted successfully',
+            data: savedApplication
+        });
+        
+    } catch (error) {
+        console.error('Error applying to daily wage job:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit application',
+            error: error.message
+        });
+    }
+}
+
+// Get seeker's daily wage applications
+async function getSeekerDailyWageApplications(req, res) {
+    try {
+        const { seekerId } = req.params;
+        
+        const applications = await DailyWageApplication.find({ seekerId })
+            .populate('jobId', 'title startDate endDate workingHours location wage')
+            .sort({ createdAt: -1 });
+        
+        // Format the response
+        const formattedApplications = applications.map(app => ({
+            _id: app._id,
+            status: app.status,
+            appliedAt: app.createdAt,
+            jobDetails: app.jobId
+        }));
+        
+        res.status(200).json({
+            success: true,
+            applications: formattedApplications
+        });
+        
+    } catch (error) {
+        console.error('Error fetching seeker applications:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch applications',
+            error: error.message
+        });
+    }
+}
 module.exports={
     createjobSeeker,
     googleLoginJobSeeker,
@@ -352,5 +442,7 @@ module.exports={
     getSeekerApplications,
     updateProfile,
     uploadResume,
-    dailywagesJobs
+    dailywagesJobs,
+    applyToDailyWageJob,
+    getSeekerDailyWageApplications
 }

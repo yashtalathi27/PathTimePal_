@@ -192,13 +192,85 @@ def translate_text(text, dest_lang='hi'):
         return str(text)
 
 def convert_record(record):
-    return {
-        key: {
-            "en": str(value) if value is not None else '',
-            "hi": translate_text(str(value) if value is not None else '')
-        }
-        for key, value in record.items()
-    }
+    converted = {}
+    for key, value in record.items():
+        if key == 'salary' and isinstance(value, dict):
+            # Handle salary nested object
+            converted[key] = {}
+            for salary_key, salary_value in value.items():
+                converted[key][salary_key] = {
+                    "en": str(salary_value) if salary_value is not None else '',
+                    "hi": translate_text(str(salary_value) if salary_value is not None else '')
+                }
+        elif key == 'location' and isinstance(value, dict):
+            # Handle location nested object
+            converted[key] = {}
+            for location_key, location_value in value.items():
+                converted[key][location_key] = {
+                    "en": str(location_value) if location_value is not None else '',
+                    "hi": translate_text(str(location_value) if location_value is not None else '')
+                }
+        elif key == 'employer' and isinstance(value, dict):
+            # Handle employer nested object
+            converted[key] = {}
+            for employer_key, employer_value in value.items():
+                converted[key][employer_key] = {
+                    "en": str(employer_value) if employer_value is not None else '',
+                    "hi": translate_text(str(employer_value) if employer_value is not None else '')
+                }
+        elif key == 'preferredTime' and isinstance(value, dict):
+            # Handle preferredTime nested object
+            converted[key] = {}
+            for time_key, time_value in value.items():
+                converted[key][time_key] = {
+                    "en": str(time_value) if time_value is not None else '',
+                    "hi": translate_text(str(time_value) if time_value is not None else '')
+                }
+        elif key == 'schedule' and isinstance(value, dict):
+            # Handle schedule nested object
+            converted[key] = {}
+            for schedule_key, schedule_value in value.items():
+                if isinstance(schedule_value, list):
+                    # Handle arrays like 'days'
+                    converted[key][schedule_key] = {
+                        "en": schedule_value,
+                        "hi": [translate_text(str(item)) for item in schedule_value]
+                    }
+                else:
+                    # Handle strings like 'shifts'
+                    converted[key][schedule_key] = {
+                        "en": str(schedule_value) if schedule_value is not None else '',
+                        "hi": translate_text(str(schedule_value) if schedule_value is not None else '')
+                    }
+        elif key in ['tags', 'skills'] and isinstance(value, list):
+            # Handle array fields that need localization
+            converted[key] = {
+                "en": value,
+                "hi": [translate_text(str(item)) for item in value]
+            }
+        elif key in ['jobId', 'recid', 'latitude', 'longitude']:
+            # Handle fields that don't need translation (IDs, coordinates)
+            converted[key] = str(value) if value is not None else ''
+        elif key in ['vacancies'] and isinstance(value, (int, float)):
+            # Handle numeric fields that need to be stored as localized strings
+            converted[key] = {
+                "en": str(value),
+                "hi": str(value)  # Numbers don't need translation
+            }
+        elif key == 'isApplied' and isinstance(value, bool):
+            # Handle boolean fields stored as localized strings
+            converted[key] = {
+                "en": str(value).lower(),
+                "hi": str(value).lower()  # Boolean values don't need translation
+            }
+        else:
+            # Handle all other string fields
+            converted[key] = {
+                "en": str(value) if value is not None else '',
+                "hi": translate_text(str(value) if value is not None else '')
+            }
+    return converted
+
 
 @app.post("/translate-job")
 async def translate_job(request: Request):
@@ -224,7 +296,7 @@ with open("joblist.json", "r", encoding="utf-8") as f:
 
 def flatten_job_entry(entry):
     return {
-        "jobId": int(entry["jobId"]["en"]),
+        "jobId": int(entry["jobId"]),
         "title": entry["title"]["en"],
         "description": entry["description"]["en"],
         "requirements": entry["requirements"]["en"],
@@ -238,7 +310,7 @@ def flatten_job_entry(entry):
         "preferred_end": entry["preferredTime.end"]["en"],
         "city": entry["location"]["city"]["en"],
         "area": entry["location"]["area"]["en"],
-        "days": eval(entry["schedule.days"]["en"]),
+        #"days": eval(entry["schedule.days"]["en"]),
     }
 
 def get_job_text(row, weights):
@@ -253,7 +325,7 @@ def get_job_text(row, weights):
         ("salary.amount", str(row["salary"])),
         ("preferredTime", f"{row['preferred_start']} {row['preferred_end']}"),
         ("location", f"{row['city']} {row['area']}"),
-        ("schedule.days", " ".join(row["days"]))
+        #("schedule.days", " ".join(row["days"]))
     ]
     weighted_text = []
     for field, value in fields:

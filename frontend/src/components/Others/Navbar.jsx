@@ -90,13 +90,9 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/dailywages"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    location.pathname === "/dailywages"
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                  className="px-3 py-2 rounded-md text-sm font-bold transition-all duration-200 bg-gradient-to-r from-orange-500 to-orange-600 text-black shadow-lg shadow-orange-500/30 transform scale-105 tracking-wider hover:from-orange-600 hover:to-orange-700 hover:shadow-xl"
                 >
-                  {t("dailywages")}
+                  <span className="uppercase text-xs font-black">DAILYWAGES</span>
                 </Link>
                 <Link
                   to="/postjob"
@@ -158,13 +154,9 @@ const Navbar = () => {
                     </Link>
                     <Link
                   to="/dailywagesJobs"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    location.pathname === "/dailywages"
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                  className="px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 bg-gradient-to-r from-orange-500 to-orange-600 text-black shadow-lg shadow-orange-500/30 transform scale-105 font-bold tracking-wider hover:from-orange-600 hover:to-orange-700 hover:shadow-xl"
                 >
-                  {t("dailywagesJobs")}
+                  <span className="uppercase text-xs font-black">DAILYWAGES</span>
                 </Link>
                   </>
                 )}
@@ -193,13 +185,9 @@ const Navbar = () => {
                     </Link>
                     <Link
                   to="/dailywages"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    location.pathname === "/dailywages"
-                      ? "bg-indigo-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                  }`}
+                  className="px-3 py-2 rounded-md text-sm font-bold transition-all duration-200 bg-gradient-to-r from-orange-500 to-orange-600 text-black shadow-lg shadow-orange-500/30 transform scale-105 tracking-wider hover:from-orange-600 hover:to-orange-700 hover:shadow-xl"
                 >
-                  {t("dailywages")}
+                  <span className="uppercase text-xs font-black">DAILYWAGES</span>
                 </Link>
                     <Link
                       to={`/candidate/${authuser.recid}`}

@@ -6,14 +6,8 @@ const PostJobPage = () => {
   const navigate = useNavigate();
   // const {postjob}=useRecuiterstore();
 
-  // Generate a random job ID with format JOB followed by 4 digits
-  const generateJobId = () => {
-    const randomNum = Math.floor(10000 + Math.random() * 90000); // Random 4-digit number
-    return `JOB${randomNum}`;
-  };
-
   const [formData, setFormData] = useState({
-    jobId: generateJobId(),
+    jobId: "",
     title: "",
     description: "",
     requirements: "",
@@ -50,6 +44,30 @@ const PostJobPage = () => {
     },
     recid: localStorage.getItem('recid') || "REC00002" // Get recid from localStorage
   });
+
+  // Generate job ID when component mounts
+  React.useEffect(() => {
+    const generateJobId = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/postjob/all");
+        const total = response.data.total || 0;
+        const newJobId = total + 2;
+        
+        setFormData(prev => ({
+          ...prev,
+          jobId: newJobId.toString()
+        }));
+      } catch (error) {
+        console.error("Error generating Job ID:", error);
+        setFormData(prev => ({
+          ...prev,
+          jobId: "1"
+        }));
+      }
+    };
+
+    generateJobId();
+  }, []);
 
   const generateSlug = (title) => {
     return title
@@ -199,13 +217,6 @@ const PostJobPage = () => {
     }
   };
 
-  const regenerateId = () => {
-    setFormData({
-      ...formData,
-      jobId: generateJobId()
-    });
-  };
-
   async function handlejobPost() {
     try {
       const res = await axios.post("http://localhost:5000/api/postjob", {
@@ -257,22 +268,13 @@ const PostJobPage = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-gray-700 text-sm mb-1">Job ID</label>
-              <div className="flex">
-                <input
-                  type="text"
-                  name="jobId"
-                  value={formData.jobId}
-                  className="w-full p-2 border rounded-l"
-                  readOnly
-                />
-                <button
-                  type="button"
-                  onClick={regenerateId}
-                  className="bg-gray-200 px-2 rounded-r hover:bg-gray-300"
-                >
-                  ↺
-                </button>
-              </div>
+              <input
+                type="text"
+                name="jobId"
+                value={formData.jobId}
+                className="w-full p-2 border rounded"
+                readOnly
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-gray-700 text-sm mb-1">Job Title</label>

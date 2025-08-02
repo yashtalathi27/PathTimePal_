@@ -5,67 +5,117 @@ const { jobSeekers } = require("../model/freelancer.js");
 // const {insertJob}=require("../../ML/insertJobs.js");
 const axios = require("axios");
 const { v4: uuidv4 } = require('uuid'); // Optional: for fallback jobId
+const fs = require('fs');
+const path = require('path');
+
+
 
 const postjobconn = (req, res) => {
-    console.log("Request body:", req.body);
+  console.log("Request body:", req.body);
 
-    let {
+  let {
+    jobId,
+    recid,
+    slug,
+    category,
+    type,
+    employer,
+    salary
+  } = req.body;
+
+  // Validate required fields
+  if (!slug || !category || !type || !recid) {
+    return res.status(400).json({ error: "Slug, category, type, and recruiterId are required" });
+  }
+
+  if (!employer?.name) {
+    return res.status(400).json({ error: "Employer name is required" });
+  }
+
+  if (!salary?.amount) {
+    return res.status(400).json({ error: "Salary amount is required" });
+  }
+
+  // Fallback IDs
+  if (!jobId) jobId = uuidv4();
+  if (!recid) recid = uuidv4();
+
+  // Remove IDs before translation
+  const { jobId: _, recid: __, ...bodyWithoutIds } = req.body;
+
+  console.log("Sending data to FastAPI service:", bodyWithoutIds);
+
+  axios.post('http://127.0.0.1:8000/translate-job', bodyWithoutIds)
+    .then(response => {
+      console.log("Response from FastAPI:", response.data);
+
+      const finalResponse = {
+        ...response.data,
         jobId,
-        recid,
-        slug,
-        category,
-        type,
-        employer,
-        salary
-    } = req.body;
+        recid
+      };
 
-    // Validate required fields
-    if (!slug || !category || !type || !recid) {
-        return res.status(400).json({ error: "Slug, category, type, and recruiterId are required" });
-    }
+      console.log("Final bilingual job object:", finalResponse);
 
-    if (!employer?.name) {
-        return res.status(400).json({ error: "Employer name is required" });
-    }
+      Job.create(finalResponse)
+        .then(createdJob => {
+          // Append to joblist.json
+          const joblistPath = path.join(__dirname, '../../ML/joblist.json');
+          fs.readFile(joblistPath, 'utf8', (err, data) => {
+            let jobs = [];
+            if (!err && data) {
+              try {
+                jobs = JSON.parse(data);
+                if (!Array.isArray(jobs)) jobs = [];
+              } catch {
+                jobs = [];
+              }
+            }
+            jobs.push(finalResponse);
+            fs.writeFile(joblistPath, JSON.stringify(jobs, null, 2), 'utf8', (writeErr) => {
+              if (writeErr) {
+                console.error('Failed to append job to joblist.json:', writeErr);
+              } else {
+                console.log('Job appended to joblist.json');
+              }
+            });
+          });
 
-    if (!salary?.amount) {
-        return res.status(400).json({ error: "Salary amount is required" });
-    }
+          // 🔁 POST to all Python ML services
+          axios.post('http://127.0.0.1:8000/add-job', finalResponse)
+            .then(addJobRes => {
+              console.log("Job added to ML:", addJobRes.data);
 
-    // Fallback values to avoid inserting null into unique fields
-    if (!jobId) jobId = uuidv4();  // Or use Date.now().toString()
-    if (!recid) recid = uuidv4();
+              // Trigger recommends
+              return axios.post('http://127.0.0.1:8000/recommends');
+            })
+            .then(recommendRes => {
+              console.log("General recommendations updated:", recommendRes.data);
 
-    // Remove jobId and recid before sending to FastAPI
-    const { jobId: _, recid: __, ...bodyWithoutIds } = req.body;
+              // Trigger text-based recommendations
+              return axios.post('http://127.0.0.1:8000/recommend_by_text', {
+                title: finalResponse.title || '',
+                description: finalResponse.description || ''
+              });
+            })
+            .then(textBasedRecRes => {
+              console.log("Text-based recommendations:", textBasedRecRes.data);
+            })
+            .catch(mlErr => {
+              console.error("ML service error:", mlErr.message || mlErr);
+            });
 
-    console.log("Sending data to FastAPI service:", bodyWithoutIds);
-
-    axios.post('http://127.0.0.1:8000/translate-job', bodyWithoutIds)
-        .then(response => {
-            console.log("Response from FastAPI:", response.data);
-
-            const finalResponse = {
-                ...response.data,
-                jobId,
-                recid
-            };
-
-            console.log("Final bilingual job object:", finalResponse);
-
-            Job.create(finalResponse)
-                .then(createdJob => {
-                    res.status(200).json(createdJob);
-                })
-                .catch(dbErr => {
-                    console.error("Error saving job to database:", dbErr);
-                    res.status(500).json({ message: "Error saving job to database." });
-                });
+          res.status(200).json(createdJob);
         })
-        .catch(error => {
-            console.error("Error calling FastAPI service:", error.message || error);
-            res.status(500).json({ message: "Error translating job data." });
+        .catch(dbErr => {
+          console.error("Error saving job to database:", dbErr);
+          res.status(500).json({ message: "Error saving job to database." });
         });
+    })
+    .catch(error => {
+      console.error("Error calling FastAPI service:", error.message || error);
+      res.status(500).json({ message: "Error translating job data." });
+    });
 };
 module.exports = postjobconn;
 
@@ -104,6 +154,7 @@ const getusers = async (req, res) => {
     }
 };
 // 🟢 GET All Jobs
+
 const getAllJobs = async (req, res) => {
     try {
         const { 

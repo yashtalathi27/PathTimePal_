@@ -1,28 +1,23 @@
-const { Job } = require('../model/job.js');
-
-const getJobsByIds = async ( jobIds = [], language = 'en', page = 1, limit = 100) => {
+// const {Job}=require("../model/job")
+const getJobsByIds = async (jobIds = [], language = 'en', page = 1, limit = 100) => {
   try {
-    // Ensure jobIds are all strings
-    const stringJobIds = jobIds.map(id => id.toString())
-    // console.log(stringJobIds);
-    
-    // Fetch jobs with matching jobId.en
+    if (!Array.isArray(jobIds)) {
+      jobIds = [jobIds];
+    }
+
+    const stringJobIds = jobIds.map(id => id.toString());
     const allJobs = await Job.find({ "jobId": { $in: stringJobIds } });
 
-// Create a map from jobId string to job
-const jobMap = new Map();
-allJobs.forEach(job => {
-  const jobIdStr = typeof job.jobId === 'object' ? job.jobId.en?.toString() : job.jobId?.toString();
-  if (jobIdStr) jobMap.set(jobIdStr, job);
-});
+    const jobMap = new Map();
+    allJobs.forEach(job => {
+      const jobIdStr = typeof job.jobId === 'object' ? job.jobId.en?.toString() : job.jobId?.toString();
+      if (jobIdStr) jobMap.set(jobIdStr, job);
+    });
 
-// Reorder jobs to match the input order
-const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
+    const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
 
-    // Localize fields
     const localizedJobs = jobs.map(job => {
       const jobObj = job.toObject();
-
       const getLocalizedValue = (field) => {
         if (field && typeof field === 'object' && field[language]) {
           return field[language];
@@ -38,21 +33,21 @@ const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
         requirements: getLocalizedValue(jobObj.requirements),
         type: getLocalizedValue(jobObj.type),
         category: getLocalizedValue(jobObj.category),
-        salary: jobObj.salary ? {
+        salary: (jobObj.salary && typeof jobObj.salary === 'object') ? {
           amount: getLocalizedValue(jobObj.salary.amount),
           currency: getLocalizedValue(jobObj.salary.currency),
           frequency: getLocalizedValue(jobObj.salary.frequency)
-        } : jobObj.salary,
-        location: jobObj.location ? {
+        } : null,
+        location: (jobObj.location && typeof jobObj.location === 'object') ? {
           city: getLocalizedValue(jobObj.location.city),
           area: getLocalizedValue(jobObj.location.area)
-        } : jobObj.location,
-        employer: jobObj.employer ? {
+        } : null,
+        employer: (jobObj.employer && typeof jobObj.employer === 'object') ? {
           name: getLocalizedValue(jobObj.employer.name),
           contact: getLocalizedValue(jobObj.employer.contact),
           phone: getLocalizedValue(jobObj.employer.phone),
           owner: getLocalizedValue(jobObj.employer.owner)
-        } : jobObj.employer,
+        } : null,
         slug: getLocalizedValue(jobObj.slug),
         isApplied: getLocalizedValue(jobObj.isApplied),
         tags: getLocalizedValue(jobObj.tags),
@@ -73,9 +68,9 @@ const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
 
   } catch (err) {
     console.error("Error fetching jobs by IDs:", err);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return { error: 'Internal Server Error' };
   }
 };
-
-
-module.exports = { getJobsByIds };
+module.exports = {
+  getJobsByIds,
+};

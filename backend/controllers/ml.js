@@ -42,6 +42,8 @@ async function getJobsByText(req,res) {
         var lang = language || 'en'; // Default to English if no language is provided
         var query=textosend || '';
         const response = await axios.post('http://127.0.0.1:8000/recommend_by_text', { query });
+        console.log("ASd");
+        
         console.log(response.data);
         
         // const jobIds = response.data.map(job => job.jobId);

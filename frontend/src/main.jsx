@@ -26,6 +26,8 @@ import { persistor } from "./utils/store.js";
 import { PersistGate } from "redux-persist/integration/react";
 import Application from "./pages/JobSeeker/Application.jsx";
 import DailyWageJobForm from "./pages/JobRecruter/DailyWageJobForm.jsx"
+// import DailyWageApplications from "./pages/JobRecruter/DailyWageApplications.jsx"
+// import DailyWageDashboard from "./pages/DailyWageDashboard.jsx"
 import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
 import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
 import RecruiterDashboard from "./components/Dashboard/Employer.jsx";
@@ -65,7 +67,9 @@ const router = createBrowserRouter([
       { path: "message", element: <MessagesRoute /> },
       { path: "application", element: <Application /> },
       { path: "dailywages", element: < DailyWageJobForm/> },
-      {path:"dailywagesjobs",element:<DailyWageJobList/>}
+      { path: "dailywagesjobs", element: <DailyWageJobList/> },
+      // { path: "dailywage-applications", element: <DailyWageApplications/> },
+      // { path: "dailywage-dashboard", element: <DailyWageDashboard/> }
     ],
   },
 ]);

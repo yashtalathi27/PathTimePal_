@@ -2,7 +2,7 @@ const express=require('express');
 const multer = require('multer');
 const path = require('path');
 const route=express.Router()
-const {dailywagesJobs,createjobSeeker,getUserById,signinJobSeeker,userLogin,updateUserByID, handleapply, handlesearch, getSeekerApplications, updateProfile, uploadResume}=require('../controllers/freelancerController')
+const {dailywagesJobs,createjobSeeker,getUserById,signinJobSeeker,userLogin,updateUserByID, handleapply, handlesearch, getSeekerApplications, updateProfile, uploadResume, applyToDailyWageJob, getSeekerDailyWageApplications}=require('../controllers/freelancerController')
 
 const {getJobsByText}=require('../controllers/ml.js');
 
@@ -43,5 +43,7 @@ route.post('/findjobs', handlesearch);
 route.get('/applications/:id/:language', getSeekerApplications);
 route.post('/recommendation_by_text', getJobsByText);
 route.get("/dailywagesJobs",dailywagesJobs);
+route.post('/apply-dailywage', applyToDailyWageJob);
+route.get('/dailywage-applications/:seekerId', getSeekerDailyWageApplications);
 module.exports=route;
  
