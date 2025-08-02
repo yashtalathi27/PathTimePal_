@@ -18,6 +18,7 @@ function App() {
   useEffect(() => {
     // Always try to load authuser on app initialization
     if (!authuser) {
+      console.log("authuser name:", authuser);
       // Check for job seeker first
       if (localStorage.getItem("authuser_jobseeker")) {
         loadAuthuser('jobseeker');

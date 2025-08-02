@@ -23,21 +23,23 @@ export const useAuthstore = create((set, get) => ({
     // get().connectSocket();
   },
 
-  loadAuthuser: (userType = 'jobseeker') => {
-    const storageKey = userType === 'recruiter' ? 'authuser_recruiter' : 'authuser_jobseeker';
-    const storedUser = localStorage.getItem(storageKey);
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        set({ authuser: parsedUser, userType });
-        // console.log("✅ Loaded authuser from localStorage:", parsedUser);
-        get().connectSocket(); // ✅ ← this is the missing piece
-      } catch (err) {
-        console.error('Invalid JSON in authuser:', err);
-      }
-    }
-  },
+  loadAuthuser: () => {
+  const recruiterUser = localStorage.getItem('authuser_recruiter');
+  const jobseekerUser = localStorage.getItem('authuser_jobseeker');
 
+  let storedUser = recruiterUser || jobseekerUser;
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      set({ authuser: parsedUser });
+      get().connectSocket();
+    } catch (err) {
+      console.error('Invalid JSON in authuser:', err);
+    }
+  }
+}
+,
   clearAuthuser: () => {
     // Clear both storage keys
     localStorage.removeItem('authuser_jobseeker');
@@ -50,7 +52,8 @@ export const useAuthstore = create((set, get) => ({
     const { userType } = get();
     const storageKey = userType === 'recruiter' ? 'authuser_recruiter' : 'authuser_jobseeker';
     localStorage.removeItem(storageKey);
-    localStorage.removeItem('authuser'); // Legacy key
+    localStorage.removeItem('authuser_recruiter'); // Legacy key
+    localStorage.removeItem('authuser_jobseeker'); // Legacy key
     set({ authuser: null, userType: null });
     get().disconnectSocket();
   },

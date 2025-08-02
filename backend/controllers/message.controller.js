@@ -4,6 +4,8 @@ const { jobSeekers } = require("../model/freelancer.js");
 // const {JobApplication} = require("../database/application.js");
 const {JobApplication} = require("../database/application.js");
 
+const DailyWageJob = require('../model/dailywages.js');
+const DailyWageApplication= require('../model/dailywageApplication.js');
 const {RecruiterUser} = require("../model/rec");
 
 const Message = require("../database/message.model.js");
@@ -16,8 +18,15 @@ const getusersforsidebars = async (req, res) => {
 
     // Step 1: Get applications for this seeker with status 'accepted'
     const applications = await JobApplication.find({ seekerId: uid, status: "accepted" });
-    console.log(applications)
-    // If no applications found, return an empty array or appropriate response
+    // console.log(applications)
+    // If no applications found, return an empty array or appropriate response 
+    const dailywagesapps=await DailyWageApplication.find({ seekerId: uid, status: "accepted" });
+    const dailyjobids=dailywagesapps.map(app => app.jobId);
+    // console.log("Daily wage applications found:", dailywagesapps.length);
+    const recPostedJobs = await DailyWageJob.find({ _id: { $in: dailyjobids } });
+    const dailyrecs= recPostedJobs.map(job => job.recid);
+
+    console.log("Recruiter IDs from daily wage jobs:", dailyrecs);
     if (!applications.length) {
       return res.status(200).json({ applicants: [] });
     }
@@ -25,8 +34,9 @@ const getusersforsidebars = async (req, res) => {
     // Step 2: Extract seeker IDs (providerId from JobApplication)
     const recIds = applications.map(app => app.providerId);
 
+    const allRecIds = [...new Set([...recIds, ...dailyrecs])];
     // Step 3: Get full user data for recruiters whose recid is in recIds
-    const recIdss = await RecruiterUser.find({ recid: { $in: recIds } });
+    const recIdss = await RecruiterUser.find({ recid: { $in: allRecIds } });
 
     res.status(200).json({ applicants: recIdss });
   } catch (error) {

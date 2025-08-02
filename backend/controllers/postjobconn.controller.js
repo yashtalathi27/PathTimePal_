@@ -7,7 +7,9 @@ const axios = require("axios");
 const { v4: uuidv4 } = require('uuid'); // Optional: for fallback jobId
 const fs = require('fs');
 const path = require('path');
-
+const DailyWageJob = require('../model/dailywages.js');
+const DailyWageApplication= require('../model/dailywageApplication.js');
+const { log } = require('console');
 
 
 const postjobconn = (req, res) => {
@@ -140,13 +142,22 @@ const getusers = async (req, res) => {
 
         // Step 1: Get applications for this recruiter
         const applications = await JobApplication.find({ providerId: id ,status:"accepted"});
+        const recPostedJobs = await DailyWageJob.find({ recid: id });
+        console.log("hello");
+        
+        console.log("Recruiter job IDs:", recPostedJobs);
 
+        // console.log("Applications found:", applications.length);
+        const recjobids= recPostedJobs.map(job => job._id);
+        // console.log("Applications for this recruiter:", applications);
+        const dailySeekerIds = await DailyWageApplication.find({ jobId: { $in: recjobids } ,status:"accepted"}).distinct("seekerId");
+        console.log("Daily wage seeker IDs:", dailySeekerIds);
         // Step 2: Extract seeker IDs
         const seekerIds = applications.map(app => app.seekerId);
-
+        const allSeekerIds = [...new Set([...seekerIds, ...dailySeekerIds])];
         // Step 3: Get full user data for seekers
-        const seekers = await jobSeekers.find({ seekerId: { $in: seekerIds } });
-
+        const seekers = await jobSeekers.find({ seekerId: { $in: allSeekerIds } });
+        console.log("Seekers found:", seekers);
         res.status(200).json({ applicants: seekers });
     } catch (error) {
         console.error("Error retrieving applicants:", error);

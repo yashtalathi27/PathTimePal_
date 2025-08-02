@@ -119,9 +119,10 @@ const DailyWageJobForm = () => {
         ...form,
         skills: form.skills.split(',').map(skill => skill.trim()),
       };
+      console.log(authuser)
       console.log(payload);
       const response = await axios.post(`http://localhost:5000/api/rec/dailywages/${authuser.recid}`, payload);
-
+      console.log(response);
       if (response.data.success) {
         alert('Job posted successfully!');
         console.log(response.data);

@@ -32,6 +32,7 @@ import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
 import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
 import RecruiterDashboard from "./components/Dashboard/Employer.jsx";
 import JobApplicationsPage from "./pages/JobRecruter/JobApplicationPage.jsx";
+import RecruiterProfile from "./pages/JobRecruter/RecruiterProfile.jsx"
 const router = createBrowserRouter([
   {
     path: "/",
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
       { path: "application", element: <Application /> },
       { path: "dailywages", element: < DailyWageJobForm/> },
       { path: "dailywagesjobs", element: <DailyWageJobList/> },
+      { path: "recprofile", element: <RecruiterProfile/> },
       // { path: "dailywage-applications", element: <DailyWageApplications/> },
       // { path: "dailywage-dashboard", element: <DailyWageDashboard/> }
     ],

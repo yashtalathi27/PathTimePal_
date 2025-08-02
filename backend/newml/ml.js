@@ -1,4 +1,5 @@
-// const {Job}=require("../model/job")
+const {Job}=require("../model/job")
+
 const getJobsByIds = async (jobIds = [], language = 'en', page = 1, limit = 100) => {
   try {
     if (!Array.isArray(jobIds)) {
