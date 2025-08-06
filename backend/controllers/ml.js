@@ -18,7 +18,8 @@ async function connectML(req, res) {
         if (!Array.isArray(response.data)) {
             return res.status(500).json({ message: "Invalid response from ML service." });
         }
-
+        console.log("Received response from FastAPI service:", response.data);
+        
         const jobIds = response.data.map(job => job.jobId);
         const jobs = await getJobsByIds(jobIds, lang);
 

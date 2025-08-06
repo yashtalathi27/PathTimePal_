@@ -3,12 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, User, Mail, Phone, MapPin, Calendar, FileText, Star, Download, Eye } from 'lucide-react';
 // import { axiosinstance } from '../../lib/axios';
 import axios from 'axios';
-import { useAuthstore } from '../../store/useAuthstore';
 
 const JobApplicantionsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { authuser, loadAuthuser } = useAuthstore();
   const [jobs, setJobs] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
@@ -17,7 +15,6 @@ const JobApplicantionsPage = () => {
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [authLoading, setAuthLoading] = useState(true);
   const recruiterId=id;
   // Fetch jobs from your backend API
   useEffect(() => {
@@ -52,6 +49,12 @@ const JobApplicantionsPage = () => {
 
     fetchJobs();
   }, [recruiterId]);
+
+  // Handle navigate to seeker profile
+  const handleViewSeekerProfile = (seekerId) => {
+    console.log('Navigating to seeker profile:', seekerId);
+    navigate(`/userprofile/${seekerId}`);
+  };
 
   // Handle accept application
   const handleAccept = async (jobId, applicantId) => {
@@ -329,14 +332,11 @@ const JobApplicantionsPage = () => {
 
                             <div className="flex flex-col gap-2 ml-4">
                               <button 
-                                onClick={() => {
-                                  setSelectedApplicant(applicant);
-                                  setSelectedJobId(job.jobInfo.jobId);
-                                }}
+                                onClick={() => handleViewSeekerProfile(applicant.seekerInfo.seekerId)}
                                 className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors flex items-center gap-1"
                               >
                                 <Eye className="w-4 h-4" />
-                                View Details
+                                View Profile
                               </button>
                               <button 
                                 onClick={() => handleAccept(job.jobInfo.jobId, applicant.seekerInfo.seekerId)}

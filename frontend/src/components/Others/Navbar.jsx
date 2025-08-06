@@ -69,7 +69,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="text-2xl font-bold text-indigo-400 hover:text-indigo-300">
-            PathTimePal
+            PartTimePal
           </Link>
 
           {/* Desktop Navigation */}

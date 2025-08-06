@@ -229,9 +229,9 @@ async function getSeekerApplications(req, res) {
                     appliedAt: app.appliedAt,
                     jobDetails: job ? {
                         title: job.title?.[language],
-                        company: job.employer?.name?.[language] || 'Unknown Company',
+                        company: job.category?.[language] || 'Unknown Company',
                         location: job.location.city?.[language],
-                        salary: job.salary.amount.en,
+                        salary: job.salary?.amount?.[language] || 'Not specified',
                         type: job.type?.[language],
                         description: job.description?.[language]
                     } : null

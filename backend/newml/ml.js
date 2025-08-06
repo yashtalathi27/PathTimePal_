@@ -2,9 +2,11 @@ const {Job}=require("../model/job")
 
 const getJobsByIds = async (jobIds = [], language = 'en', page = 1, limit = 100) => {
   try {
+    console.log(jobIds);
     if (!Array.isArray(jobIds)) {
       jobIds = [jobIds];
     }
+    
 
     const stringJobIds = jobIds.map(id => id.toString());
     const allJobs = await Job.find({ "jobId": { $in: stringJobIds } });
@@ -16,7 +18,8 @@ const getJobsByIds = async (jobIds = [], language = 'en', page = 1, limit = 100)
     });
 
     const jobs = stringJobIds.map(id => jobMap.get(id)).filter(Boolean);
-
+    // console.log(jobs);
+    
     const localizedJobs = jobs.map(job => {
       const jobObj = job.toObject();
       const getLocalizedValue = (field) => {

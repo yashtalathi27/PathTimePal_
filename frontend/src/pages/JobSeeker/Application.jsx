@@ -34,7 +34,12 @@ function Application() {
             const response = await axiosinstance.get(`/jobseekers/applications/${authuser.seekerId}/${language}`);
             console.log(response);
                 
-            setApplications(response.data.applications || []);
+            // Sort applications by appliedAt date (most recent first)
+            const sortedApplications = (response.data.applications || []).sort((a, b) => {
+                return new Date(b.appliedAt) - new Date(a.appliedAt);
+            });
+            
+            setApplications(sortedApplications);
         } catch (error) {
             console.error("Error fetching applications:", error);
             setError("Failed to load applications");
@@ -62,6 +67,27 @@ function Application() {
             month: 'short',
             day: 'numeric'
         });
+    };
+
+    const getRelativeTime = (dateString) => {
+        const now = new Date();
+        const appliedDate = new Date(dateString);
+        const diffTime = Math.abs(now - appliedDate);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+        const diffMinutes = Math.floor(diffTime / (1000 * 60));
+
+        if (diffDays > 7) {
+            return formatDate(dateString);
+        } else if (diffDays > 0) {
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        } else if (diffHours > 0) {
+            return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        } else if (diffMinutes > 0) {
+            return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+        } else {
+            return 'Just now';
+        }
     };
 
     const handleContactEmployer = (providerId) => {
@@ -151,6 +177,12 @@ function Application() {
                     <p className="text-gray-600 mt-2">
                         Track the status of your job applications and manage your career journey
                     </p>
+                    <div className="mt-3 flex items-center text-sm text-gray-500">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Sorted by most recently applied
+                    </div>
                 </div>
 
                 {/* Applications Summary */}
@@ -204,9 +236,17 @@ function Application() {
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                                         <div className="flex-1">
                                             <div className="flex items-start justify-between mb-2">
-                                                <h3 className="text-xl font-semibold text-gray-900">
-                                                    {application.jobDetails?.title || 'Job Title Not Available'}
-                                                </h3>
+                                                <div>
+                                                    <h3 className="text-xl font-semibold text-gray-900">
+                                                        {application.jobDetails?.title || 'Job Title Not Available'}
+                                                    </h3>
+                                                    <div className="flex items-center mt-1 text-sm text-gray-500">
+                                                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        Applied {getRelativeTime(application.appliedAt)}
+                                                    </div>
+                                                </div>
                                                 <span className={`ml-4 px-3 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(application.status)}`}>
                                                     {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                                                 </span>
@@ -227,7 +267,7 @@ function Application() {
                                                     <span className="ml-1 font-mono bg-gray-100 px-2 py-1 rounded">{application.jobId}</span>
                                                 </div>
                                                 <div className="flex items-center">
-                                                    <span className="font-medium">Applied:</span>
+                                                    <span className="font-medium">Applied on:</span>
                                                     <span className="ml-1">{formatDate(application.appliedAt)}</span>
                                                 </div>
                                                 {application.jobDetails?.type && (
@@ -240,7 +280,7 @@ function Application() {
                                                     <div className="flex items-center">
                                                         <span className="font-medium">Salary:</span>
                                                         <span className="ml-1">
-                                                            ₹{application.jobDetails.salary.amount} 
+                                                            ₹{application.jobDetails.salary} 
                                                             {application.jobDetails.salary.frequency && ` / ${application.jobDetails.salary.frequency}`}
                                                         </span>
                                                     </div>
@@ -260,12 +300,7 @@ function Application() {
 
                                     {/* Action Buttons */}
                                     <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
-                                        <button 
-                                            onClick={() => handleViewJobDetails(application.jobId)}
-                                            className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-                                        >
-                                            View Job Details
-                                        </button>
+                                        
                                         {application.status === 'accepted' && (
                                             <button 
                                                 onClick={() => handleContactEmployer(application.providerId)}

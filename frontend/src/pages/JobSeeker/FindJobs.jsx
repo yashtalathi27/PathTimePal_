@@ -23,6 +23,7 @@ const FindJobsPage = () => {
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [textosend, setTextosend] = useState('');
+  const [isAiSearchLoading, setIsAiSearchLoading] = useState(false);
 
   // Language selection variable
   const { language } = useLanguage();
@@ -265,6 +266,9 @@ const FindJobsPage = () => {
     try {
       console.log('Getting jobs by text with:', { textosend, language: selang });
       
+      // Set loading state to true
+      setIsAiSearchLoading(true);
+      
       const res = await axios.post(`http://localhost:5000/api/jobseekers/recommendation_by_text`, {
         textosend,
         language: selang,
@@ -294,6 +298,9 @@ const FindJobsPage = () => {
     } catch (error) {
       console.error('Error getting AI job recommendations:', error);
       alert('Failed to get AI recommendations. Please try again or use regular search.');
+    } finally {
+      // Set loading state to false regardless of success or failure
+      setIsAiSearchLoading(false);
     }
   };
 
@@ -446,7 +453,7 @@ const FindJobsPage = () => {
                     placeholder="Confused??? ... tell us what you're looking for" 
                     className="block w-full pl-10 pr-3 py-3 border-2 border-indigo-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white placeholder-indigo-400 text-gray-900" 
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter' && textosend.trim()) {
+                      if (e.key === 'Enter' && textosend.trim() && !isAiSearchLoading) {
                         getjobbytext(1);
                       }
                     }}
@@ -455,11 +462,20 @@ const FindJobsPage = () => {
                 <div className="flex justify-center">
                   <button 
                     onClick={() => textosend.trim() && getjobbytext(1)} 
-                    disabled={!textosend.trim()}
+                    disabled={!textosend.trim() || isAiSearchLoading}
                     className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-md hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
-                    <Zap size={16} className="mr-2" />
-                    Send AI Request
+                    {isAiSearchLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        Wait...getting response
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={16} className="mr-2" />
+                        Send AI Request
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
