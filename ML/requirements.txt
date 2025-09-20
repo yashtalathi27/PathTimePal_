@@ -1,0 +1,18 @@
+# Python Environment for ML
+
+This file lists the recommended Python packages for the ML module in PathTimePal_.
+
+## Usage
+Install dependencies with:
+```
+pip install -r requirements.txt
+```
+
+## Recommended Packages
+numpy
+pandas
+scikit-learn
+openai
+transformers
+langchain
+googletrans==4.0.0rc1

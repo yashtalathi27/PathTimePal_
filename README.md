@@ -19,34 +19,52 @@ PathTimePal_ is a full-stack application designed to connect job seekers and rec
 ## Getting Started
 
 ### Backend
-1. Navigate to `backend/` and install dependencies:
+1. Navigate to `backend/`.
+2. (Recommended) Use Node.js v18+ and install dependencies:
 	```sh
 	cd backend
 	npm install
 	```
-2. Start the server:
+3. Set environment variables in a `.env` file for database and secrets. Example:
+	```env
+	MONGODB_URL=mongodb+srv://<username>:<password>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority
+	JWT_SECRET=your_jwt_secret_key
+	PORT=5000
+	```
+4. Start the server:
 	```sh
 	npm start
 	```
 
 ### Frontend
-1. Navigate to `frontend/` and install dependencies:
+1. Navigate to `frontend/`.
+2. (Recommended) Use Node.js v18+ and install dependencies:
 	```sh
 	cd frontend
 	npm install
 	```
-2. Start the development server:
+3. Set environment variables in a `.env` file for API endpoints and keys. Example:
+	```env
+	VITE_API_URL=http://localhost:5000/api
+	VITE_GOOGLE_CLIENT_ID=your_google_client_id
+	```
+4. Start the development server:
 	```sh
 	npm run dev
 	```
 
 ### ML
-1. Navigate to `ML/` and install dependencies:
+1. Navigate to `ML/`.
+2. (Recommended) Create and activate a virtual environment:
 	```sh
-	cd ML
+	python -m venv venv
+	.\venv\Scripts\activate
+	```
+3. Install dependencies:
+	```sh
 	pip install -r requirements.txt
 	```
-2. Run ML scripts as needed:
+4. Run ML scripts as needed:
 	```sh
 	python main.py
 	```
@@ -54,6 +72,4 @@ PathTimePal_ is a full-stack application designed to connect job seekers and rec
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-## License
-This project is licensed under the MIT License.
 # PathTimePal_
