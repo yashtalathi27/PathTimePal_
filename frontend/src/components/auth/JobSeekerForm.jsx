@@ -36,6 +36,8 @@ const JobSeekerForm = () => {
   async function submitForm(){
     // e.preventDefault();
     try {
+      console.log("Submitting form data:", formData);
+      
       const res=await axios.post("http://localhost:5000/api/jobseekers", formData);
       console.log(res);
       navigate("/");

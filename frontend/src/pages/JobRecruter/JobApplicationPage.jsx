@@ -53,7 +53,7 @@ const JobApplicantionsPage = () => {
   // Handle navigate to seeker profile
   const handleViewSeekerProfile = (seekerId) => {
     console.log('Navigating to seeker profile:', seekerId);
-    navigate(`/userprofile/${seekerId}`);
+    navigate(`/view-seeker/${seekerId}`);
   };
 
   // Handle accept application

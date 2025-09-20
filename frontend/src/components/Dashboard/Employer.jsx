@@ -48,20 +48,40 @@ const RecruiterDashboard = () => {
           console.log('Full authuser object:', authuser);
           const response = await axios.get(`http://localhost:5000/api/rec/jobs/${recruiterId}`);
           console.log('Jobs response:', response.data);
+          console.log('Response data structure:', JSON.stringify(response.data, null, 2));
           
-          const jobsData = response.data.data || [];
+          // The backend returns data.jobs array, each containing jobInfo and applicants
+          const jobsData = response.data.data?.jobs || [];
           console.log('Jobs data:', jobsData);
-          setJobs(jobsData);
+          console.log('Jobs data length:', jobsData.length);
           
-          // Calculate stats from real data
-          const activeJobs = jobsData.length;
-          const totalApplicants = jobsData.reduce((sum, job) => {
+          // Log each job's applicants
+          jobsData.forEach((job, index) => {
+            console.log(`Job ${index + 1}:`, job.jobInfo?.title);
+            console.log(`  - Applicants:`, job.applicants);
+            console.log(`  - Applicant count:`, job.applicants?.length || 0);
+          });
+          
+          // Transform the data to match the expected format
+          const transformedJobs = jobsData.map(job => ({
+            ...job.jobInfo,
+            applicants: job.applicants || []
+          }));
+          
+          console.log('Transformed jobs:', transformedJobs);
+          setJobs(transformedJobs);
+          
+          // Calculate stats from transformed data
+          const activeJobs = transformedJobs.length;
+          const totalApplicants = transformedJobs.reduce((sum, job) => {
             const applicantCount = job.applicants?.length || 0;
             console.log(`Job ${job.jobId} (${job.title}) has ${applicantCount} applicants:`, job.applicants);
             return sum + applicantCount;
           }, 0);
-          const positionsFilled = jobsData.reduce((sum, job) => {
-            const acceptedCount = job.applicants?.filter(app => app.status === 'accepted').length || 0;
+          const positionsFilled = transformedJobs.reduce((sum, job) => {
+            const acceptedCount = job.applicants?.filter(app => 
+              app.applicationDetails?.status === 'accepted' || app.status === 'accepted'
+            ).length || 0;
             console.log(`Job ${job.jobId} (${job.title}) has ${acceptedCount} accepted applicants`);
             return sum + acceptedCount;
           }, 0);
@@ -115,9 +135,14 @@ const RecruiterDashboard = () => {
   const getTopCandidates = () => {
     const allApplicants = jobs.flatMap(job => 
       (job.applicants || []).map(applicant => ({
-        ...applicant,
+        ...applicant.seekerInfo,
+        ...applicant.applicationDetails,
         position: job.title,
-        jobLocation: job.location?.city || job.city || 'Location not specified'
+        jobLocation: job.location?.city || job.city || 'Location not specified',
+        name: applicant.seekerInfo?.name || 'Name not available',
+        email: applicant.seekerInfo?.email || '',
+        experience: applicant.seekerInfo?.experience || 'Experience not specified',
+        status: applicant.applicationDetails?.status || 'pending'
       }))
     );
     
@@ -172,7 +197,9 @@ const RecruiterDashboard = () => {
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <div className="text-3xl font-bold text-red-600">
-              {loading ? '...' : jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'rejected').length || 0), 0)}
+              {loading ? '...' : jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => 
+                app.applicationDetails?.status === 'rejected' || app.status === 'rejected'
+              ).length || 0), 0)}
             </div>
             <div className="text-sm text-gray-500">Applications Rejected</div>
           </div>
@@ -328,7 +355,9 @@ const RecruiterDashboard = () => {
                     <span className="text-sm text-gray-700">Pending Applications</span>
                   </div>
                   <span className="text-sm font-medium text-yellow-700">
-                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'pending').length || 0), 0)}
+                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => 
+                      app.applicationDetails?.status === 'pending' || app.status === 'pending'
+                    ).length || 0), 0)}
                   </span>
                 </div>
                 
@@ -348,7 +377,9 @@ const RecruiterDashboard = () => {
                     <span className="text-sm text-gray-700">Rejected Applications</span>
                   </div>
                   <span className="text-sm font-medium text-red-700">
-                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => app.status === 'rejected').length || 0), 0)}
+                    {jobs.reduce((sum, job) => sum + (job.applicants?.filter(app => 
+                      app.applicationDetails?.status === 'rejected' || app.status === 'rejected'
+                    ).length || 0), 0)}
                   </span>
                 </div>
               </div>

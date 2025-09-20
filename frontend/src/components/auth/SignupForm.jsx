@@ -3,6 +3,7 @@ import { Lock, Mail, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // import axios from "axios";
 import { axiosinstance } from "../../lib/axios";
+import axios from "axios";
 
 const SignupForm = ({ userType, onBack }) => {
   // const { signup, isSigningup } = useAuthstore();
@@ -26,6 +27,7 @@ const SignupForm = ({ userType, onBack }) => {
 
   async function handleSignupp(event) {
     event.preventDefault(); // Prevent default form submission
+  //  console.log("run");
    
     try {
       // Verify passwords match
@@ -35,9 +37,10 @@ const SignupForm = ({ userType, onBack }) => {
       }
 
       // Determine the endpoint based on user type - fixed to use signup endpoints
-      const endpoint = userType === "jobSeeker" ? "/jobseekers/signup" : "/recruiters/signup";
-      
-      const res = await axiosinstance.post(endpoint, {
+      const endpoint = userType === "jobSeeker" ? "/jobseekers/signin" : "/recruiters/signin";
+      console.log("Signing up user:", formData, "User Type:", userType);
+
+      const res = await axios.post(`http://localhost:5000/api${endpoint}`, {
         name: formData.firstname + " " + formData.lastname,
         email: formData.email,
         password: formData.password,

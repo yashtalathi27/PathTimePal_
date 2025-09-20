@@ -32,7 +32,8 @@ import RecruiterForm from "./components/auth/JobRecruiterForm.jsx";
 import UserSelection_signup from "./components/auth/UserSelection_signup.jsx";
 import RecruiterDashboard from "./components/Dashboard/Employer.jsx";
 import JobApplicationsPage from "./pages/JobRecruter/JobApplicationPage.jsx";
-import RecruiterProfile from "./pages/JobRecruter/RecruiterProfile.jsx"
+import RecruiterProfile from "./pages/JobRecruter/RecruiterProfile.jsx";
+import ViewSeekerProfile from "./pages/ViewSeekerProfile.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
       { path: "jobSeeker/applications", element: <ApplicationsPage /> },
       { path: "jobSeeker/messages", element: <MessagesRoute /> },
       { path: "userprofile/:id", element: <UserProfile /> },
+      { path: "view-seeker/:id", element: <ViewSeekerProfile /> },
       { path: "jobSeekerDashboard", element: <JobSeekerDashboard /> },
       { path: "RDashboard/:id", element: <RecruiterDashboard /> },
       { path: "findJobs", element: <FindJobsPage /> },

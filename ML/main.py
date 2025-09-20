@@ -138,51 +138,95 @@ async def add_job(job: JobInput):
     return {"status": "Job added"}
 
 
+# @app.post("/recommends")
+# async def recommend_endpoint(req: RecommendRequest):
+#     title = req.title
+#     city = req.city
+
+#     geolocator = Nominatim(user_agent="job_recommender")
+#     location = geolocator.geocode(city)
+
+#     if not location:
+#         return {"message": "Invalid city name."}
+
+#     user_location = np.radians([[location.latitude, location.longitude]])
+
+#     # Step 1: Try to find jobs with similar title
+#     index = new_df[new_df['title'].str.contains(title, case=False, na=False)].index
+
+#     if len(index) > 0:
+#         distances = sorted(list(enumerate(similarity[index[0]])), reverse=True, key=lambda x: x[1])
+#         rec_list = []
+#         for i, _ in distances[1:100]:
+#             rec_list.append({
+#                 'jobId': new_df.iloc[i].jobId,
+#                 'latitude': new_df.iloc[i]['latitude'],
+#                 'longitude': new_df.iloc[i]['longitude'],
+#                 'title': new_df.iloc[i]['title']
+#             })
+
+#         rec_df = pd.DataFrame(rec_list)
+#         if not rec_df.empty:
+#             job_locations = np.radians(rec_df[['latitude', 'longitude']].to_numpy())
+#             nbrs = NearestNeighbors(n_neighbors=min(20, len(job_locations)), metric="haversine").fit(job_locations)
+#             distances, indices = nbrs.kneighbors(user_location)
+#             within_radius = np.degrees(distances) * 111 <= 500
+#             filtered = indices[0][within_radius[0]]
+#             rec_df = rec_df.iloc[filtered]
+#             return rec_df.head(20)[['jobId']].to_dict(orient="records")
+
+#     # Step 2: If no title match, fallback to any nearby jobs
+#     job_locations_all = np.radians(new_df[['latitude', 'longitude']].to_numpy())
+#     nbrs = NearestNeighbors(n_neighbors=min(50, len(job_locations_all)), metric="haversine").fit(job_locations_all)
+#     distances, indices = nbrs.kneighbors(user_location)
+#     within_radius = np.degrees(distances) * 111 <= 500
+#     filtered_idx = indices[0][within_radius[0]]
+#     fallback_jobs = new_df.iloc[filtered_idx]
+#     return fallback_jobs.head(20)[['jobId']].to_dict(orient="records")
+
 @app.post("/recommends")
 async def recommend_endpoint(req: RecommendRequest):
     title = req.title
     city = req.city
 
+    index = new_df[new_df['title'].str.contains(title, case=False, na=False)].index
+    if len(index) == 0:
+        return {"message": f"No jobs found for title: {title}"}
+
+    distances = sorted(list(enumerate(similarity[index[0]])), reverse=True, key=lambda x: x[1])
+    rec_list = []
+
+    for i, dist in distances[1:50]:
+        rec_list.append({
+            'jobId': new_df.iloc[i].jobId,
+            'title': new_df.iloc[i].title,
+            'latitude': new_df.iloc[i]['latitude'],
+            'longitude': new_df.iloc[i]['longitude']
+        })
+
+    rec = pd.DataFrame(rec_list)
+    if rec.empty:
+        return {"message": "No job recommendations found."}
+
+    rec['title_match'] = rec['title'].str.contains(title, case=False, na=False).astype(int)
+
     geolocator = Nominatim(user_agent="job_recommender")
     location = geolocator.geocode(city)
 
-    if not location:
-        return {"message": "Invalid city name."}
+    if location:
+        user_location = np.radians([[location.latitude, location.longitude]])
+        job_locations = np.radians(rec[['latitude', 'longitude']].to_numpy())
+        nbrs = NearestNeighbors(n_neighbors=min(20, len(job_locations)), metric="haversine").fit(job_locations)
+        distances, indices = nbrs.kneighbors(user_location)
 
-    user_location = np.radians([[location.latitude, location.longitude]])
+        within_radius = np.degrees(distances) * 111 <= 500
+        filtered_indices = indices[0][within_radius[0]]
+        rec = rec.iloc[filtered_indices]
+    else:
+        rec = rec.head(20)
 
-    # Step 1: Try to find jobs with similar title
-    index = new_df[new_df['title'].str.contains(title, case=False, na=False)].index
-
-    if len(index) > 0:
-        distances = sorted(list(enumerate(similarity[index[0]])), reverse=True, key=lambda x: x[1])
-        rec_list = []
-        for i, _ in distances[1:100]:
-            rec_list.append({
-                'jobId': new_df.iloc[i].jobId,
-                'latitude': new_df.iloc[i]['latitude'],
-                'longitude': new_df.iloc[i]['longitude'],
-                'title': new_df.iloc[i]['title']
-            })
-
-        rec_df = pd.DataFrame(rec_list)
-        if not rec_df.empty:
-            job_locations = np.radians(rec_df[['latitude', 'longitude']].to_numpy())
-            nbrs = NearestNeighbors(n_neighbors=min(20, len(job_locations)), metric="haversine").fit(job_locations)
-            distances, indices = nbrs.kneighbors(user_location)
-            within_radius = np.degrees(distances) * 111 <= 500
-            filtered = indices[0][within_radius[0]]
-            rec_df = rec_df.iloc[filtered]
-            return rec_df.head(20)[['jobId']].to_dict(orient="records")
-
-    # Step 2: If no title match, fallback to any nearby jobs
-    job_locations_all = np.radians(new_df[['latitude', 'longitude']].to_numpy())
-    nbrs = NearestNeighbors(n_neighbors=min(50, len(job_locations_all)), metric="haversine").fit(job_locations_all)
-    distances, indices = nbrs.kneighbors(user_location)
-    within_radius = np.degrees(distances) * 111 <= 500
-    filtered_idx = indices[0][within_radius[0]]
-    fallback_jobs = new_df.iloc[filtered_idx]
-    return fallback_jobs.head(20)[['jobId']].to_dict(orient="records")
+    rec = rec.sort_values(by=['title_match'], ascending=[False])
+    return rec.head(20)[['jobId']].to_dict(orient='records')
 
 # ========== Translation API ========== #
 
